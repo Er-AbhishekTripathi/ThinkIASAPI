@@ -2,6 +2,10 @@ const mongoose = require('mongoose');
 
 const programSchema = new mongoose.Schema({
   programNameHindi: { type: String, trim: true, default: '' },
+  accessType: {type:String,enum:['pre','mains','combo']},
+  overview: {type:String,default:''},
+  overviewHindi: {type:String,default:''},
+  medium: {type:String,enum:['English','Hindi','Bilingual'],default:'Bilingual'},
   descriptionHindi: { type: String, trim: true, default: '' },
   durationHindi: { type: String, trim: true, default: '' },
   featuresHindi: { type: [String], default: [] },

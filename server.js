@@ -59,6 +59,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(requestLogger);
 
 // Routes
+app.use('/api/app/auth', require('./routes/appAuth'));
+app.use('/api/app', require('./routes/app'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/tests', require('./routes/tests'));
 app.use('/api/results', require('./routes/results'));

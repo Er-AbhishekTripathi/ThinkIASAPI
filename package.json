@@ -20,7 +20,7 @@
     "express": "^4.22.1",
     "express-rate-limit": "^6.10.0",
     "express-validator": "^7.0.1",
-    "firebase-admin": "^14.4.0",
+    "firebase-admin": "^14.3.0",
     "jsonwebtoken": "^9.0.2",
     "moment": "^2.29.4",
     "mongoose": "^7.5.0",

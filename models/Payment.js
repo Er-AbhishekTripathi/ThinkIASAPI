@@ -12,6 +12,9 @@ const paymentSchema = new mongoose.Schema({
     required: true
   },
   accessType: { type: String, enum: ['pre', 'mains', 'combo'] },
+  expiresAt: Date,
+  appCheckout: {type:Boolean,default:false},
+  idempotencyKey: String,
   programId: { type: mongoose.Schema.Types.ObjectId, ref: 'Program' },
   batchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Batch' },
   planName: {
@@ -61,6 +64,7 @@ const paymentSchema = new mongoose.Schema({
 });
 
 // Generate transaction ID before saving
+paymentSchema.index({user:1,idempotencyKey:1},{unique:true,partialFilterExpression:{idempotencyKey:{$type:'string'}}});
 paymentSchema.pre('save', function(next) {
   if (!this.transactionId) {
     this.transactionId = `TXN${Date.now()}${Math.random().toString(36).substring(2, 9).toUpperCase()}`;

@@ -12,6 +12,13 @@ const auth = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, JWT.SECRET);
+    if (decoded.appSessionId) {
+      const session = await require('../models/AppAuthSession').findOne({
+        _id: decoded.appSessionId, user: decoded.userId, expiresAt: { $gt: new Date() }
+      });
+      if (!session) return res.status(401).json({success:false,message:'Session expired or logged out. Please log in again.'});
+      req.appSession = session;
+    }
     
     // Support both userId and id formats
     const userId = decoded.userId || decoded.id;
@@ -22,10 +29,17 @@ const auth = async (req, res, next) => {
       return res.status(401).json({ message: 'Token is not valid' });
     }
 
+    if (decoded.appSessionId && (decoded.appAuthVersion || 0) !== (user.appAuthVersion || 0)) {
+      return res.status(401).json({success:false,message:'Password changed. Please log in again.'});
+    }
+
     if (user.isActive === false) return res.status(403).json(require('../utils/accountStatus').inactiveAccount);
     req.user = user;
     next();
   } catch (error) {
+    if (['JsonWebTokenError','TokenExpiredError','NotBeforeError'].includes(error.name)) {
+      return res.status(401).json({success:false,message:'Invalid or expired token. Please log in again.'});
+    }
     handleError(res, error, 'Authentication failed');
   }
 };

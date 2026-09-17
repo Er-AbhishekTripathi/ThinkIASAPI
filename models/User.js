@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema({
     required: true,
     unique: true,
     lowercase: true,
-    match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Please fill a valid email address']
+    match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Please fill a valid email address']
   },
   phone: {
     type: String,
@@ -39,6 +39,13 @@ const userSchema = new mongoose.Schema({
     }
   },
   planActivatedAt: Date,
+  emailVerifiedAt: Date,
+  appAuthVersion: {type:Number,default:0},
+  address: {pincode:String,houseNo:String,colony:String,city:String},
+  preferredLanguage: {type:String,enum:['en','hi'],default:'en'},
+  notificationsEnabled: {type:Boolean,default:true},
+  deletedAt: Date,
+  deletionReason: String,
   isActive: { type: Boolean, default: true },
   purchasedPlanId: String,
   programId: { type: mongoose.Schema.Types.ObjectId, ref: 'Program' },
@@ -57,7 +64,6 @@ userSchema.pre('save', async function(next) {
 userSchema.methods.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
-
 userSchema.methods.toJSON = function() {
   const user = this.toObject();
   delete user.password;

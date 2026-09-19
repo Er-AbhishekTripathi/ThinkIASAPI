@@ -163,6 +163,15 @@ const getPlatformStatistics = async (req, res) => {
   }
 };
 
+const getDashboardCharts = async (req, res) => {
+  try {
+    const charts = await AnalyticsService.getDashboardCharts();
+    res.json(charts);
+  } catch (error) {
+    handleError(res, error, messages.en.serverError);
+  }
+};
+
 const getStudents = async (req, res) => {
   try {
     const students = await User.find({ role: 'student' })
@@ -280,6 +289,7 @@ module.exports = {
   getTestAnalytics,
   getAllResults,
   getPlatformStatistics,
+  getDashboardCharts,
   getStudents,
   updateUserType,
   getUsersByType,

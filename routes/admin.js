@@ -9,6 +9,7 @@ const {
   getTestAnalytics,
   getAllResults,
   getPlatformStatistics,
+  getDashboardCharts,
   getStudents,
   updateUserType,
   getUsersByType,
@@ -31,6 +32,7 @@ router.get('/results/:testId', getTestResults);
 router.get('/analytics/:testId', getTestAnalytics);
 router.get('/results', getAllResults);
 router.get('/statistics', getPlatformStatistics);
+router.get('/dashboard-charts', getDashboardCharts);
 
 // Student Management
 router.get('/students', getStudents);

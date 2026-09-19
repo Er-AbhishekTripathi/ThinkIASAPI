@@ -120,6 +120,71 @@ class AnalyticsService {
       poor: results.filter(r => (r.score / r.totalMarks) < 0.4).length
     };
   }
+
+  // Aggregated payload for admin dashboard graphs (avoids sending full tests/results to the client)
+  static async getDashboardCharts() {
+    const [totalTests, totalStudents, totalResults] = await Promise.all([
+      Test.countDocuments(),
+      User.countDocuments({ role: 'student' }),
+      Result.countDocuments()
+    ]);
+
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+
+    const trendAgg = await Result.aggregate([
+      { $match: { submittedAt: { $gte: sevenDaysAgo } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$submittedAt' } },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const trendMap = new Map(trendAgg.map(entry => [entry._id, entry.count]));
+    const resultsTrend = [];
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(sevenDaysAgo);
+      day.setDate(sevenDaysAgo.getDate() + i);
+      const key = day.toISOString().slice(0, 10);
+      resultsTrend.push({
+        date: day.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }),
+        count: trendMap.get(key) || 0
+      });
+    }
+
+    const distributionAgg = await Result.aggregate([
+      {
+        $project: {
+          ratio: { $cond: [{ $gt: ['$totalMarks', 0] }, { $divide: ['$score', '$totalMarks'] }, 0] }
+        }
+      },
+      {
+        $bucket: {
+          groupBy: '$ratio',
+          boundaries: [-Infinity, 0.4, 0.6, 0.8, Infinity],
+          default: 'other',
+          output: { count: { $sum: 1 } }
+        }
+      }
+    ]);
+
+    const scoreDistribution = { poor: 0, average: 0, good: 0, excellent: 0 };
+    const bucketOrder = ['poor', 'average', 'good', 'excellent'];
+    distributionAgg.forEach((bucket, index) => {
+      if (bucketOrder[index]) scoreDistribution[bucketOrder[index]] = bucket.count;
+    });
+
+    return {
+      overview: { totalStudents, totalTests, totalResults },
+      activity: { totalTests, totalResults },
+      resultsTrend,
+      scoreDistribution
+    };
+  }
 }
 
 module.exports = AnalyticsService;

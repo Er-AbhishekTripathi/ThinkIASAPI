@@ -141,6 +141,17 @@ exports.complete = async (req, res) => {
   res.json({ success: true, data });
 };
 
+exports.adminDelete = async (req, res) => {
+  const data = await ProctorSession.findByIdAndDelete(req.params.id);
+  if (!data) return res.status(404).json({ success: false, message: 'Monitoring session not found' });
+  res.json({ success: true });
+};
+
+exports.adminDeleteAll = async (req, res) => {
+  const result = await ProctorSession.deleteMany({});
+  res.json({ success: true, deleted: result.deletedCount || 0 });
+};
+
 exports.adminList = async (req, res) => {
   const cutoff = new Date(Date.now() - 2 * 60 * 1000);
   const data = await ProctorSession.find().populate('student', 'fullName email phone').populate('test', 'title').sort({ lastHeartbeatAt: -1 }).limit(200).lean();

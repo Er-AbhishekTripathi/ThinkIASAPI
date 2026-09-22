@@ -32,6 +32,12 @@ const meetingSchema = new mongoose.Schema({
     enum: ['upcoming', 'completed', 'cancelled'],
     default: 'upcoming'
   },
+  audience: {
+    type: String,
+    enum: ['pre', 'mains'],
+    default: 'pre',
+    index: true
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

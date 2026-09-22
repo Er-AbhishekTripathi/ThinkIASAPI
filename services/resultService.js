@@ -13,6 +13,12 @@ class ResultService {
     
     if (!test) throw new Error('Test not found');
 
+    const { examWindow, activeReopen } = require('../utils/examAccess');
+    const reopen = await activeReopen(testId, studentId);
+    const window = examWindow(test, reopen);
+    if (window.waiting) throw new Error('Test has not started yet');
+    if (!window.canTake) throw new Error('This exam window has ended.');
+
     // Validate that we have questions populated
     if (!test.questions || test.questions.length === 0) {
       throw new Error('No questions found for this test');

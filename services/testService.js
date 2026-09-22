@@ -50,9 +50,16 @@ class TestService {
     return await query.exec();
   }
 
-  static async getAvailableTestsForStudent() {
+  static async getAvailableTestsForStudent(userId) {
   const now = new Date();
-  const tests = await Test.find({ isActive: true })
+  const ExamReopen = require('../models/ExamReopen');
+  const reopens = userId ? await ExamReopen.find({ user: userId, until: { $gte: now } }).select('test') : [];
+  const reopenIds = new Set(reopens.map(item => String(item.test)));
+  const tests = await Test.find({
+    isActive: true,
+    seriesId: { $in: [null, undefined] },
+    $or: [{ endTime: { $gt: now } }, { _id: { $in: reopens.map(item => item.test) } }]
+  })
     .populate({
       path: 'questions',
       select: '_id question uid',
@@ -61,12 +68,7 @@ class TestService {
     .sort({ startTime: 1 })
     .exec();
 
-  return tests.filter(test => {
-   
-    const endTime = new Date(test.endTime);
-    
-      return endTime > now;
-  });
+  return tests.filter(test => new Date(test.endTime) > now || reopenIds.has(String(test._id)));
 }
 
   static async getTestWithValidation(testId, userId, userRole) {
@@ -148,7 +150,7 @@ class TestService {
   }
 
   static async getTestsByCreator(creatorId) {
-    return await Test.find({ createdBy: creatorId })
+    return await Test.find({ createdBy: creatorId, seriesId: { $in: [null, undefined] } })
       .populate({
         path: 'questions',
         select: '_id question.english uid',
@@ -158,7 +160,7 @@ class TestService {
   }
 
   static async getAllActiveTests() {
-    return await Test.find({ isActive: true })
+    return await Test.find({ isActive: true, seriesId: { $in: [null, undefined] } })
       .populate({
         path: 'questions',
         select: '_id question.english uid',

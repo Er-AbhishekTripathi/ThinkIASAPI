@@ -82,6 +82,7 @@ app.use('/api/tags', require('./routes/tags'));
 
 app.use('/api/testimonials', require('./routes/testimonial'));
 app.use('/api/support-features', require('./routes/supportFeature'));
+app.use('/api/support-tickets', require('./routes/supportTickets'));
 
 // Add this to your server.js routes
 app.use('/api/questions', require('./routes/questions'));

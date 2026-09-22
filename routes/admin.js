@@ -13,7 +13,8 @@ const {
   getStudents,
   updateUserType,
   getUsersByType,
-  deleteUser
+  deleteUser,
+  reopenExam
 } = require('../controllers/adminController');
 const { auth, adminAuth } = require('../middleware/auth');
 const { testValidation, handleValidationErrors } = require('../middleware/validation');
@@ -26,6 +27,7 @@ router.post('/tests', testValidation, handleValidationErrors, createTest);
 router.get('/tests', getTests);
 router.put('/tests/:id', testValidation, updateTest);
 router.delete('/tests/:id', deleteTest);
+router.post('/tests/:id/reopen', reopenExam);
 
 // Results & Analytics
 router.get('/results/:testId', getTestResults);

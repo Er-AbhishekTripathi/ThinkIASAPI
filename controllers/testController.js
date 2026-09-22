@@ -3,6 +3,7 @@ const ResultService = require('../services/resultService');
 const { formatTestForStudent } = require('../utils/helpers');
 const { handleError } = require('../middleware/errorHandler');
 const messages = require('../utils/messages');
+const { examWindow, activeReopen } = require('../utils/examAccess');
 
 const getTests = async (req, res) => {
   try {
@@ -11,7 +12,7 @@ const getTests = async (req, res) => {
     if (req.user.role === 'admin') {
       tests = await TestService.getAllActiveTests();
     } else {
-      tests = await TestService.getAvailableTestsForStudent();
+      tests = await TestService.getAvailableTestsForStudent(req.user._id);
       
       // Check submission status for each test
       const testsWithSubmissionStatus = await Promise.all(
@@ -21,10 +22,17 @@ const getTests = async (req, res) => {
           // Check if student has already submitted this test
           const existingResult = await ResultService.getStudentTestResult(test._id, req.user._id);
           const isSubmitted = !!existingResult;
+          const reopen = await activeReopen(test._id, req.user._id);
+          const window = examWindow(test, reopen);
           
           return {
             ...formattedTest,
-            submitted: isSubmitted
+            submitted: isSubmitted,
+            startsInMs: window.startsInMs,
+            reopened: window.reopened,
+            reopenUntil: window.reopened ? window.endTime : undefined,
+            canTake: window.canTake,
+            waiting: window.waiting
           };
         })
       );
@@ -40,34 +48,33 @@ const getTests = async (req, res) => {
 
 const getTestById = async (req, res) => {
   try {
-    const test = await TestService.getTestWithValidation(req.params.id, req.user._id, req.user.role);
-    
     if (req.user.role === 'student') {
-      // Check if student has already submitted this test
+      const test = await TestService.getTestById(req.params.id, { populateQuestions: true });
+      if (!test) return res.status(404).json({ message: messages.en.testNotFound });
       const existingResult = await ResultService.getStudentTestResult(req.params.id, req.user._id);
-      const isSubmitted = !!existingResult;
-      
-      // Don't send correct answers to students
-      const testWithoutAnswers = {
+      const reopen = await activeReopen(req.params.id, req.user._id);
+      const window = examWindow(test, reopen);
+      if (existingResult) return res.status(400).json({ message: messages.en.testSubmitted, submitted: true });
+      if (window.waiting) {
+        return res.json({ waiting: true, _id: test._id, title: test.title, description: test.description, startTime: test.startTime, endTime: test.endTime, duration: test.duration, startsInMs: window.startsInMs });
+      }
+      if (!window.canTake) return res.status(400).json({ message: messages.en.testEnded, ended: true, endTime: window.endTime });
+      return res.json({
         _id: test._id,
         title: test.title,
         description: test.description,
         startTime: test.startTime,
+        endTime: window.endTime,
         duration: test.duration,
         marksPerQuestion: test.marksPerQuestion,
         negativeMarks: test.negativeMarks,
         totalMarks: test.totalMarks,
-        submitted: isSubmitted, // Add submission status
-        questions: test.questions.map(q => ({
-          uid: q.uid, // Include UID for reference
-          question: q.question,
-          // description: q.description || { english: '', hindi: '' },
-          options: q.options
-        }))
-      };
-      return res.json(testWithoutAnswers);
+        submitted: false,
+        reopened: window.reopened,
+        questions: (test.questions || []).map(q => ({ uid: q.uid, question: q.question, options: q.options }))
+      });
     }
-
+    const test = await TestService.getTestWithValidation(req.params.id, req.user._id, req.user.role);
     res.json(test);
   } catch (error) {
     handleError(res, error, error.message);
@@ -116,34 +123,38 @@ const checkTestAvailability = async (req, res) => {
 
     const now = new Date();
     const startTime = new Date(test.startTime);
-    const endTime = new Date(test.startTime.getTime() + test.duration * 60000);
+    const endTime = new Date(test.endTime);
+    const reopen = await activeReopen(req.params.id, req.user._id);
+    const window = examWindow(test, reopen);
 
     if (req.user.role !== 'student') {
       return res.json({ canTake: true, reason: 'Admin user' });
     }
 
-    if (now < startTime) {
-      return res.json({ 
-        canTake: false, 
-        reason: messages.en.testNotStarted,
-        startTime: test.startTime
-      });
-    }
-
-    if (now > endTime) {
-      return res.json({ 
-        canTake: false, 
-        reason: messages.en.testEnded,
-        endTime: endTime
-      });
-    }
-
     const existingResult = await ResultService.getStudentTestResult(req.params.id, req.user._id);
     if (existingResult) {
-      return res.json({ 
-        canTake: false, 
+      return res.json({
+        canTake: false,
         reason: messages.en.testSubmitted,
         submittedAt: existingResult.submittedAt
+      });
+    }
+
+    if (window.waiting) {
+      return res.json({
+        canTake: false,
+        waiting: true,
+        reason: messages.en.testNotStarted,
+        startTime: test.startTime,
+        startsInMs: window.startsInMs
+      });
+    }
+
+    if (!window.canTake) {
+      return res.json({
+        canTake: false,
+        reason: messages.en.testEnded,
+        endTime: window.endTime
       });
     }
 

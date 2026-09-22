@@ -12,6 +12,7 @@ const {
 const { auth, adminAuth } = require('../middleware/auth');
 const importUpload = require('multer')({ storage: require('multer').memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }).single('file');
 router.post('/import', auth, adminAuth, importUpload, require('../controllers/questionImportController').importQuestions);
+router.post('/import-sheet', auth, adminAuth, require('../controllers/questionImportController').importFromSheet);
 
 router.get('/', auth, adminAuth, getQuestions);
 router.get('/all', auth, adminAuth, getAllQuestions);

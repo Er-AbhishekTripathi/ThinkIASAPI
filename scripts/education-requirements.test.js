@@ -57,3 +57,28 @@ test('Drive links keep the correct file or folder and resource key', () => {
   assert.equal(normalizeMaterialLink('https://docs.google.com/document/d/abc/edit'), 'https://docs.google.com/document/d/abc/edit');
   assert.throws(()=>normalizeMaterialLink('javascript:alert(1)'), /HTTP/);
 });
+test('Google Sheet links convert to CSV export and exam windows honour reopen', () => {
+  const { sheetCsvUrl, sheetParts } = require('../utils/googleSheetImport');
+  const { examWindow } = require('../utils/examAccess');
+  const { getMenuItems } = require('../utils/helpers');
+  const url = 'https://docs.google.com/spreadsheets/d/abc123XYZ/edit?gid=99#gid=99';
+  assert.deepEqual(sheetParts(url), { id: 'abc123XYZ', gid: '99' });
+  assert.equal(sheetCsvUrl(url), 'https://docs.google.com/spreadsheets/d/abc123XYZ/export?format=csv&gid=99');
+  assert.throws(() => sheetParts('https://example.com/sheet'), /valid Google Sheet/);
+  const future = new Date(Date.now() + 60 * 1000);
+  const past = new Date(Date.now() - 60 * 1000);
+  const later = new Date(Date.now() + 120 * 1000);
+  assert.equal(examWindow({ startTime: future, endTime: later }, null).waiting, true);
+  assert.equal(examWindow({ startTime: past, endTime: later }, null).canTake, true);
+  assert.equal(examWindow({ startTime: past, endTime: past }, { until: later }).canTake, true);
+  assert.equal(examWindow({ startDateTime: past, endDateTime: past }, { until: later }).canTake, true);
+  assert.equal(examWindow({ startTime: past, endTime: past }, { until: later }).endTime, later);
+  const combo = getMenuItems({ role: 'student', type: 'combo' });
+  assert.ok(combo.some(item => item.name === 'Prelims' && item.children.some(child => child.path === '/prelims-test-series')));
+  assert.ok(combo.some(item => item.name === 'Mains' && item.children.some(child => child.path === '/mains-test-series')));
+  assert.ok(combo.some(item => item.path === '/support-tickets'));
+  const mainsMenu = getMenuItems({ role: 'student', type: 'mains' });
+  assert.ok(mainsMenu[1].children.some(child => child.path === '/mains-session'));
+  assert.ok(!mainsMenu[1].children.some(child => child.path === '/pre-session'));
+});
+

@@ -9,6 +9,8 @@ router.get('/ice-config', controller.iceConfig);
 router.post('/admin/sessions/:id/live/offer', adminAuth, controller.createLiveOffer);
 router.get('/admin/sessions/:id/live/answer', adminAuth, controller.getLiveAnswer);
 router.delete('/admin/sessions/:id/live', adminAuth, controller.closeLiveView);
+router.delete('/admin/sessions/:id', adminAuth, controller.adminDelete);
+router.delete('/admin/sessions', adminAuth, controller.adminDeleteAll);
 router.post('/sessions', controller.start);
 router.get('/sessions/:id/live/offer', controller.getLiveOffer);
 router.post('/sessions/:id/live/answer', controller.submitLiveAnswer);

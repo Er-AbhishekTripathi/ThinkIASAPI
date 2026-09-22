@@ -27,7 +27,9 @@ const getMenuItems = (user) => {
       { name: 'Tag Master', path: '/tag-master', icon: 'local_offer' },
       { name: 'Question Master', path: '/questions-master', icon: 'quiz' },
       { name: 'Pre Resources Directory', path: '/directory-master', icon: 'library_books' },
-      { name: 'Meeting Master', path: '/meeting-admin', icon: 'groups' },
+      { name: 'Support Tickets', path: '/support-tickets', icon: 'support' },
+      { name: 'Prelims Meeting', path: '/meeting-admin', icon: 'groups' },
+      { name: 'Mains Meeting', path: '/mains-meeting-admin', icon: 'groups' },
       { name: 'Mentorship Master', path: '', icon: 'school', children: [{ name: 'Programs', path: '/manage-program', icon: 'school' }, { name: 'Mentorship Plans', path: '/admin-mentorship', icon: 'groups' }, { name: 'Program FAQs', path: '/program-faqs', icon: 'help' }] },
       { name: 'Announcement Master', path: '/announcement-master', icon: 'campaign' },
       { name: 'Push Notifications', path: '/notifications', icon: 'notifications' },
@@ -54,7 +56,6 @@ const getMenuItems = (user) => {
       { name: 'Manage Program', path: '/manage-program', icon: 'fact_check' },
       { name: 'Manage Answer Writing', path: '/answer-writing', icon: 'fact_check' },
       { name: 'Mains Resources Directory', path: '/directory-master', icon: 'library_books' },
-      { name: 'Mains Meeting', path: '/meeting-admin', icon: 'groups' },
       { name: 'Live Tests', path: '/live-test', icon: 'description' },
       { name: 'Prelims Test Series', path: '/prelims-test-series', icon: 'description' },
       { name: 'Mains Test Series', path: '/mains-test-series', icon: 'description' },
@@ -69,9 +70,7 @@ const getMenuItems = (user) => {
         return [
           ...commonItems,
           { name: 'Demo Test', path: '/demo-tests', icon: 'assignment' },
-
-          // { name: 'My Profile', path: '/profile', icon: 'person' },
-          // { name: 'Upgrade Plan', path: '/upgrade', icon: 'upgrade' }
+          { name: 'Support Tickets', path: '/support-tickets', icon: 'support' },
         ];
 
       case USER_TYPES.PRE:
@@ -84,6 +83,7 @@ const getMenuItems = (user) => {
             { name: 'Resources', path: '/pre-materials', icon: 'library_books' },
             { name: 'Mentorship Sessions', path: '/pre-session', icon: 'groups' }
           ] },
+          { name: 'Support Tickets', path: '/support-tickets', icon: 'support' },
 
 
           // { name: 'Test History', path: '/test-history', icon: 'history' },
@@ -98,9 +98,10 @@ const getMenuItems = (user) => {
             { name: 'Daily Answer Writing', path: '/student-answer-writing', icon: 'description' },
             { name: 'DAW Evaluation', path: '/mains-results', icon: 'assignment' },
             { name: 'Study Materials', path: '/pre-materials', icon: 'library_books' },
-            { name: 'Mentorship Sessions', path: '/pre-session', icon: 'groups' },
+            { name: 'Mentorship Sessions', path: '/mains-session', icon: 'groups' },
             { name: 'Live Tests', path: '/live-test', icon: 'description' }
           ] },
+          { name: 'Support Tickets', path: '/support-tickets', icon: 'support' },
 
           // { name: 'Answer Writing', path: '/answer-writing', icon: 'edit_note' },
           // { name: 'Test History', path: '/test-history', icon: 'history' },
@@ -123,9 +124,10 @@ const getMenuItems = (user) => {
             { name: 'Daily Answer Writing', path: '/student-answer-writing', icon: 'description' },
             { name: 'DAW Evaluation', path: '/mains-results', icon: 'assignment' },
             { name: 'Study Materials', path: '/pre-materials', icon: 'library_books' },
-            { name: 'Mentorship Sessions', path: '/pre-session', icon: 'groups' },
+            { name: 'Mentorship Sessions', path: '/mains-session', icon: 'groups' },
             { name: 'Live Tests', path: '/live-test', icon: 'description' }
-          ] }
+          ] },
+          { name: 'Support Tickets', path: '/support-tickets', icon: 'support' }
         ];
 
       default:

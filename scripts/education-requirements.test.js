@@ -74,11 +74,27 @@ test('Google Sheet links convert to CSV export and exam windows honour reopen', 
   assert.equal(examWindow({ startDateTime: past, endDateTime: past }, { until: later }).canTake, true);
   assert.equal(examWindow({ startTime: past, endTime: past }, { until: later }).endTime, later);
   const combo = getMenuItems({ role: 'student', type: 'combo' });
-  assert.ok(combo.some(item => item.name === 'Prelims' && item.children.some(child => child.path === '/prelims-test-series')));
-  assert.ok(combo.some(item => item.name === 'Mains' && item.children.some(child => child.path === '/mains-test-series')));
+  assert.ok(combo.some(item => item.path === '/prelims-test-series' && !item.children));
+  assert.ok(combo.some(item => item.path === '/mains-test-series' && !item.children));
+  assert.ok(combo.some(item => item.name === 'Prelims' && !item.children.some(child => child.path === '/prelims-test-series')));
   assert.ok(combo.some(item => item.path === '/support-tickets'));
+  const { slotDateTime, calendarDay } = require('../utils/istTime');
+  const slot = slotDateTime({ date: '2026-09-23T00:00:00.000Z', time: '09:00' });
+  assert.equal(calendarDay(slot), '2026-09-23');
+  assert.equal(slot.getUTCHours(), 3);
+  assert.equal(slot.getUTCMinutes(), 30);
   const mainsMenu = getMenuItems({ role: 'student', type: 'mains' });
-  assert.ok(mainsMenu[1].children.some(child => child.path === '/mains-session'));
-  assert.ok(!mainsMenu[1].children.some(child => child.path === '/pre-session'));
+  const mainsGroup = mainsMenu.find(item => item.name === 'Mains');
+  assert.ok(mainsGroup.children.some(child => child.path === '/mains-session'));
+  assert.ok(!mainsGroup.children.some(child => child.path === '/pre-session'));
+  assert.ok(mainsMenu.some(item => item.path === '/mains-test-series'));
+});
+test('web and app login accept the same student email regardless of case, and mobile number', () => {
+  const { loginQuery } = require('../utils/loginAccount');
+  const byEmail = loginQuery('  App.User@Email.COM ');
+  assert.ok(byEmail.$or.some(item => item.email === 'app.user@email.com'));
+  const byPhone = loginQuery('9415778282');
+  assert.ok(byPhone.$or.some(item => item.phone === '9415778282'));
+  assert.ok(byPhone.$or.some(item => item.phone === '+919415778282'));
 });
 

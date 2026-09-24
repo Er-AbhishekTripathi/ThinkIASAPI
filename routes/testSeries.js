@@ -7,24 +7,26 @@ const User = require('../models/User');
 const { auth, adminAuth } = require('../middleware/auth');
 const { publishSystemNotification } = require('../services/firebaseNotificationService');
 const { examWindow } = require('../utils/examAccess');
+const { slotDateTime, calendarDay, fromIst } = require('../utils/istTime');
 const allowed = ['intro', 'introHi', 'name', 'nameHi', 'description', 'descriptionHi', 'startDate', 'endDate', 'testDates', 'isActive'];
 const payload = body => Object.fromEntries(allowed.filter(key => body[key] !== undefined).map(key => [key, body[key]]));
-const slotTime = item => {
-  const date = new Date(item.date);
-  const [hours, minutes] = String(item.time || '09:00').split(':').map(Number);
-  date.setHours(hours || 0, minutes || 0, 0, 0);
-  return date;
-};
+const slotTime = item => slotDateTime(item);
 const serialize = (item, papers = []) => {
   const data = item.toObject();
   const bySlot = new Map(papers.map(paper => [String(paper.slotId), paper]));
   return {
     ...data,
     totalTests: data.testDates.length,
-    testDates: data.testDates.map(slot => ({ ...slot, exam: bySlot.get(String(slot._id)) || null }))
+    testDates: data.testDates.map(slot => {
+      const slotId = String(slot._id || slot.id);
+      return { ...slot, _id: slot._id || slot.id, exam: bySlot.get(slotId) || null };
+    })
   };
 };
-const papersFor = ids => Test.find({ seriesId: { $in: ids } }).select('title description startTime endTime duration marksPerQuestion negativeMarks questionUids seriesId slotId seriesKind isActive introPage').lean();
+const papersFor = ids => Test.find({ seriesId: { $in: ids } }).select('title description startTime endTime duration marksPerQuestion negativeMarks questionUids seriesId slotId seriesKind isActive introPage').lean().then(papers => {
+  papers.forEach(paper => { paper.slotId = paper.slotId != null ? String(paper.slotId) : paper.slotId; });
+  return papers;
+});
 const ensurePapers = async item => {
   for (const slot of item.testDates) {
     const startTime = slotTime(slot);
@@ -63,7 +65,7 @@ module.exports = kind => {
   const handle = fn => async (req, res) => { try { await fn(req, res); } catch (error) { res.status(400).json({ success: false, message: error.message }); } };
   const notify = (item, user) => {
     if (!item.isActive) return;
-    publishSystemNotification({ title: item.name.slice(0,120), titleHindi: item.nameHi.slice(0,120), body: item.description.slice(0,500), bodyHindi: item.descriptionHi.slice(0,500), type: 'test_series', audience: kind, link: kind === 'pre' ? '/prelims-test-series' : '/mains-test-series', createdBy: user._id }).catch(error => console.error('Series notification:', error.message));
+    publishSystemNotification({ title: String(item.name || '').slice(0,120), titleHindi: String(item.nameHi || item.name || '').slice(0,120), body: String(item.description || '').slice(0,500), bodyHindi: String(item.descriptionHi || item.description || '').slice(0,500), type: 'test_series', audience: kind, link: kind === 'pre' ? '/prelims-test-series' : '/mains-test-series', createdBy: user._id }).catch(error => console.error('Series notification:', error.message));
   };
   const withPapers = async items => {
     for (const item of items) await ensurePapers(item);
@@ -80,8 +82,9 @@ module.exports = kind => {
   router.get('/student/:filter', handle(async (req, res) => {
     if (req.user.role !== 'admin' && ![kind, 'combo'].includes(req.user.type)) return res.status(403).json({ success: false, message: 'This test series requires the corresponding plan.' });
     const filter = { kind, isActive: true };
-    if (req.params.filter === 'available') { filter.startDate = { $lte: new Date() }; filter.endDate = { $gte: new Date() }; }
-    if (req.params.filter === 'upcoming') filter.startDate = { $gt: new Date() };
+    const now = new Date();
+    if (req.params.filter === 'available') { filter.startDate = { $lte: now }; filter.endDate = { $gte: fromIst(calendarDay(now), '00:00') }; }
+    if (req.params.filter === 'upcoming') filter.startDate = { $gt: now };
     const data = await TestSeries.find(filter).sort({ startDate: 1 });
     const serialized = await withPapers(data);
     const results = req.user.role === 'student'

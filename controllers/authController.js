@@ -3,6 +3,7 @@ const { JWT } = require('../config/constants');
 const User = require('../models/User');
 const OTP = require('../models/OTP'); // Make sure this line exists
 const { generateToken, getMenuItems } = require('../utils/helpers');
+const { findLoginUser } = require('../utils/loginAccount');
 const { handleError } = require('../middleware/errorHandler');
 const messages = require('../utils/messages');
 const emailService = require('../services/emailService'); // Make sure this line exists
@@ -505,7 +506,7 @@ const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
+    const user = await findLoginUser(email);
     if (!user) {
       return res.status(400).json({ message: messages.en.invalidCredentials });
     }

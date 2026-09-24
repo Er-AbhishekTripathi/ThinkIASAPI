@@ -6,6 +6,7 @@ const Challenge = require('../models/AppAuthChallenge');
 const Session = require('../models/AppAuthSession');
 const {JWT} = require('../config/constants');
 const {inactiveAccount} = require('../utils/accountStatus');
+const {findLoginUser} = require('../utils/loginAccount');
 
 // Explicit app test flow requested by the client. No email service is invoked.
 const TEST_OTP = '1234';
@@ -30,8 +31,8 @@ async function issue(email, purpose) {
   return challenge;
 }
 async function student(email) {
-  const user = await User.findOne({email,role:'student'});
-  if (!user) throw error(404,'No student account found with this email.','ACCOUNT_NOT_FOUND');
+  const user = await findLoginUser(email);
+  if (!user || user.role !== 'student') throw error(404,'No student account found with this email.','ACCOUNT_NOT_FOUND');
   if (user.isActive === false) throw error(403,inactiveAccount.message,'ACCOUNT_INACTIVE');
   return user;
 }
@@ -90,8 +91,8 @@ exports.register = handle(async (req,res) => {
   await sessionResponse(res,user,201);
 });
 exports.login = handle(async (req,res) => {
-  const user = await User.findOne({email:req.body.email,role:'student'});
-  if (!user || !await user.comparePassword(req.body.password)) throw error(401,'Invalid email or password.','INVALID_CREDENTIALS');
+  const user = await findLoginUser(req.body.email);
+  if (!user || user.role !== 'student' || !await user.comparePassword(req.body.password)) throw error(401,'Invalid email or password.','INVALID_CREDENTIALS');
   if (user.isActive === false) throw error(403,inactiveAccount.message,'ACCOUNT_INACTIVE');
   await sessionResponse(res,user);
 });

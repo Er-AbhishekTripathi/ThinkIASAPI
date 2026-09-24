@@ -16,6 +16,8 @@ const getMenuItems = (user) => {
 
   const role = user.role;
   const type = user.type;
+  const prelimsSeriesMenu = { name: 'Prelims Test Series', path: '/prelims-test-series', icon: 'event_note' };
+  const mainsSeriesMenu = { name: 'Mains Test Series', path: '/mains-test-series', icon: 'event_note' };
 
   // Admin menu (no type needed)
   if (role === 'admin') {
@@ -76,9 +78,9 @@ const getMenuItems = (user) => {
       case USER_TYPES.PRE:
         return [
           ...commonItems,
+          prelimsSeriesMenu,
           { name: 'Prelims', path: '', icon: 'quiz', children: [
             { name: 'Prelims Tests', path: '/prelims-tests', icon: 'quiz' },
-            { name: 'Prelims Test Series', path: '/prelims-test-series', icon: 'event_note' },
             { name: 'Prelims Results', path: '/prelims-results', icon: 'assignment' },
             { name: 'Resources', path: '/pre-materials', icon: 'library_books' },
             { name: 'Mentorship Sessions', path: '/pre-session', icon: 'groups' }
@@ -93,8 +95,8 @@ const getMenuItems = (user) => {
       case USER_TYPES.MAINS:
         return [
           ...commonItems,
+          mainsSeriesMenu,
           { name: 'Mains', path: '', icon: 'edit_note', children: [
-            { name: 'Mains Test Series', path: '/mains-test-series', icon: 'event_note' },
             { name: 'Daily Answer Writing', path: '/student-answer-writing', icon: 'description' },
             { name: 'DAW Evaluation', path: '/mains-results', icon: 'assignment' },
             { name: 'Study Materials', path: '/pre-materials', icon: 'library_books' },
@@ -112,15 +114,15 @@ const getMenuItems = (user) => {
       case USER_TYPES.COMBO:
         return [
           ...commonItems,
+          prelimsSeriesMenu,
+          mainsSeriesMenu,
           { name: 'Prelims', path: '', icon: 'quiz', children: [
             { name: 'Prelims Tests', path: '/prelims-tests', icon: 'quiz' },
-            { name: 'Prelims Test Series', path: '/prelims-test-series', icon: 'event_note' },
             { name: 'Prelims Results', path: '/prelims-results', icon: 'assignment' },
             { name: 'Resources', path: '/pre-materials', icon: 'library_books' },
             { name: 'Mentorship Sessions', path: '/pre-session', icon: 'groups' }
           ] },
           { name: 'Mains', path: '', icon: 'edit_note', children: [
-            { name: 'Mains Test Series', path: '/mains-test-series', icon: 'event_note' },
             { name: 'Daily Answer Writing', path: '/student-answer-writing', icon: 'description' },
             { name: 'DAW Evaluation', path: '/mains-results', icon: 'assignment' },
             { name: 'Study Materials', path: '/pre-materials', icon: 'library_books' },

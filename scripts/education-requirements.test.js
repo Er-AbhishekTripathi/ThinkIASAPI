@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { parseCSV, validateQuestions } = require('../utils/questionImport');
+const { parseCSV, validateQuestions, parseQuestionImportFile } = require('../utils/questionImport');
 const { mergePlanAccess } = require('../utils/planAccess');
 const { visibleAudiences, audienceTypes } = require('../utils/notificationAudience');
 const { normalizeMaterialLink } = require('../utils/materialLink');
@@ -57,3 +57,90 @@ test('Drive links keep the correct file or folder and resource key', () => {
   assert.equal(normalizeMaterialLink('https://docs.google.com/document/d/abc/edit'), 'https://docs.google.com/document/d/abc/edit');
   assert.throws(()=>normalizeMaterialLink('javascript:alert(1)'), /HTTP/);
 });
+test('Google Sheet links convert to CSV export and exam windows honour reopen', () => {
+  const { sheetCsvUrl, sheetParts } = require('../utils/googleSheetImport');
+  const { examWindow } = require('../utils/examAccess');
+  const { getMenuItems } = require('../utils/helpers');
+  const url = 'https://docs.google.com/spreadsheets/d/abc123XYZ/edit?gid=99#gid=99';
+  assert.deepEqual(sheetParts(url), { id: 'abc123XYZ', gid: '99' });
+  assert.equal(sheetCsvUrl(url), 'https://docs.google.com/spreadsheets/d/abc123XYZ/export?format=csv&gid=99');
+  assert.throws(() => sheetParts('https://example.com/sheet'), /valid Google Sheet/);
+  const future = new Date(Date.now() + 60 * 1000);
+  const past = new Date(Date.now() - 60 * 1000);
+  const later = new Date(Date.now() + 120 * 1000);
+  assert.equal(examWindow({ startTime: future, endTime: later }, null).waiting, true);
+  assert.equal(examWindow({ startTime: past, endTime: later }, null).canTake, true);
+  assert.equal(examWindow({ startTime: past, endTime: past }, { until: later }).canTake, true);
+  assert.equal(examWindow({ startDateTime: past, endDateTime: past }, { until: later }).canTake, true);
+  assert.equal(examWindow({ startTime: past, endTime: past }, { until: later }).endTime, later);
+  const combo = getMenuItems({ role: 'student', type: 'combo' });
+  assert.ok(combo.some(item => item.path === '/prelims-test-series' && !item.children));
+  assert.ok(combo.some(item => item.path === '/mains-test-series' && !item.children));
+  assert.ok(combo.some(item => item.name === 'Prelims' && !item.children.some(child => child.path === '/prelims-test-series')));
+  assert.ok(combo.some(item => item.path === '/support-tickets'));
+  const { slotDateTime, calendarDay } = require('../utils/istTime');
+  const slot = slotDateTime({ date: '2026-09-23T00:00:00.000Z', time: '09:00' });
+  assert.equal(calendarDay(slot), '2026-09-23');
+  assert.equal(slot.getUTCHours(), 3);
+  assert.equal(slot.getUTCMinutes(), 30);
+  const mainsMenu = getMenuItems({ role: 'student', type: 'mains' });
+  const mainsGroup = mainsMenu.find(item => item.name === 'Mains');
+  assert.ok(mainsGroup.children.some(child => child.path === '/mains-session'));
+  assert.ok(!mainsGroup.children.some(child => child.path === '/pre-session'));
+  assert.ok(mainsMenu.some(item => item.path === '/mains-test-series'));
+});
+
+test('Google Sheet import retries alternate CSV export endpoints when the first export is blocked', async () => {
+  const { fetchSheetQuestions } = require('../utils/googleSheetImport');
+  const originalFetch = global.fetch;
+  const calls = [];
+  global.fetch = async (url) => {
+    calls.push(String(url));
+    if (String(url).includes('/export?format=csv')) {
+      return { ok: false, status: 403, text: async () => 'Forbidden' };
+    }
+    if (String(url).includes('/gviz/tq')) {
+      return { ok: true, text: async () => 'Question (English),Question (Hindi),Option A (English),Option B (English),Option C (English),Option D (English),Correct Answer\nCapital of India?,भारत की राजधानी?,Delhi,Mumbai,Chennai,Kolkata,A' };
+    }
+    return { ok: false, status: 404, text: async () => 'Not found' };
+  };
+
+  try {
+    const rows = await fetchSheetQuestions('https://docs.google.com/spreadsheets/d/abc123XYZ/edit?gid=99#gid=99');
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].question.english, 'Capital of India?');
+    assert.ok(calls.some(call => call.includes('/gviz/tq')));
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test('DOCX uploads are converted into the same question schema as CSV files', async () => {
+  const mammoth = require('mammoth');
+  const originalExtract = mammoth.extractRawText;
+  mammoth.extractRawText = async () => {
+    return {
+      value: `Question 1\nWhat is the capital of India?\nA) Delhi\nB) Mumbai\nC) Chennai\nD) Kolkata\nAnswer: A\nExplanation: Delhi is the capital city.`
+    };
+  };
+
+  try {
+    const rows = await parseQuestionImportFile(Buffer.from('fake-docx'), 'questions.docx');
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].question.english, 'What is the capital of India?');
+    assert.deepEqual(rows[0].options.map(item => item.english), ['Delhi', 'Mumbai', 'Chennai', 'Kolkata']);
+    assert.equal(rows[0].correctAnswer, 0);
+    assert.ok(rows[0].description.english.includes('Delhi is the capital city'));
+  } finally {
+    mammoth.extractRawText = originalExtract;
+  }
+});
+test('web and app login accept the same student email regardless of case, and mobile number', () => {
+  const { loginQuery } = require('../utils/loginAccount');
+  const byEmail = loginQuery('  App.User@Email.COM ');
+  assert.ok(byEmail.$or.some(item => item.email === 'app.user@email.com'));
+  const byPhone = loginQuery('9415778282');
+  assert.ok(byPhone.$or.some(item => item.phone === '9415778282'));
+  assert.ok(byPhone.$or.some(item => item.phone === '+919415778282'));
+});
+

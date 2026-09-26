@@ -66,7 +66,10 @@ const testSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
-  }
+  },
+  seriesId: { type: mongoose.Schema.Types.ObjectId, ref: 'TestSeries', default: null, index: true },
+  seriesKind: { type: String, enum: ['pre', 'mains'] },
+  slotId: { type: mongoose.Schema.Types.ObjectId, default: null }
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
@@ -154,5 +157,6 @@ testSchema.index({ startTime: 1, isActive: 1 });
 testSchema.index({ endTime: 1, isActive: 1 });
 testSchema.index({ createdBy: 1 });
 testSchema.index({ questionUids: 1 });
+testSchema.index({ seriesId: 1, slotId: 1 });
 
 module.exports = mongoose.model('Test', testSchema);

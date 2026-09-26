@@ -2,10 +2,10 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
-const ts = require('../web/student-portal/student-portal/node_modules/typescript');
+const ts = require('../../ThinkIASStudent/node_modules/typescript');
 
 function createService(post) {
-  const source = fs.readFileSync(require('node:path').join(__dirname, '../web/student-portal/student-portal/src/app/shared/services/proctoring.service.ts'), 'utf8');
+  const source = fs.readFileSync(require('node:path').join(__dirname, '../../ThinkIASStudent/src/app/shared/services/proctoring.service.ts'), 'utf8');
   const output = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, experimentalDecorators: true } }).outputText;
   const exports = {};
   vm.runInNewContext(output, {

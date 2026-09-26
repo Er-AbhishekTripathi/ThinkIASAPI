@@ -23,7 +23,19 @@ const createTest = async (req, res) => {
     };
 
     const test = await TestService.createTest(processedData);
-    if (test.isActive) publishSystemNotification({ title: `New test: ${test.title}`.slice(0,120), titleHindi: `नया टेस्ट: ${test.title}`.slice(0,120), body: 'A new Prelims test is available.', bodyHindi: 'प्रारंभिक परीक्षा का नया टेस्ट उपलब्ध है।', type: 'test_series', audience: 'pre', link: '/prelims-tests', createdBy: req.user._id }).catch(error => console.error('Test notification failed:', error.message));
+    if (test.isActive) {
+      const series = !!test.seriesId;
+      publishSystemNotification({
+        title: `New test: ${test.title}`.slice(0,120),
+        titleHindi: `नया टेस्ट: ${test.title}`.slice(0,120),
+        body: series ? 'A new test series exam is available.' : 'A new Prelims test is available.',
+        bodyHindi: series ? 'टेस्ट सीरीज़ का नया एग्जाम उपलब्ध है।' : 'प्रारंभिक परीक्षा का नया टेस्ट उपलब्ध है।',
+        type: 'test_series',
+        audience: test.seriesKind === 'mains' ? 'mains' : 'pre',
+        link: test.seriesKind === 'mains' ? '/mains-test-series' : series ? '/prelims-test-series' : '/prelims-tests',
+        createdBy: req.user._id
+      }).catch(error => console.error('Test notification failed:', error.message));
+    }
     
     // Populate questions for response
     const testWithQuestions = await TestService.getTestWithFullQuestions(test._id);
@@ -280,6 +292,19 @@ const deleteUser = async (req, res) => {
   }
 };
 
+const reopenExam = async (req, res) => {
+  try {
+    const Test = require('../models/Test');
+    const { grantReopen } = require('../utils/examAccess');
+    const test = await Test.findById(req.params.id);
+    if (!test) return res.status(404).json({ success: false, message: 'Exam not found.' });
+    const { record, student } = await grantReopen({ examId: test._id, userId: req.body.userId, email: req.body.email, until: req.body.until, createdBy: req.user._id });
+    res.json({ success: true, data: record, student });
+  } catch (error) {
+    handleError(res, error, error.message);
+  }
+};
+
 module.exports = {
   createTest,
   getTests,
@@ -293,5 +318,6 @@ module.exports = {
   getStudents,
   updateUserType,
   getUsersByType,
-  deleteUser
+  deleteUser,
+  reopenExam
 };

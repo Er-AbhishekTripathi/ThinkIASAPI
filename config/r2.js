@@ -196,4 +196,16 @@ const deleteFromR2 = async (fileUrl) => {
   }
 };
 
-module.exports = { uploadAnswerSheet, testimonialImageUpload, uploadProctorRecording, uploadProctorSnapshot, getPublicR2Url, deleteFromR2, getPresignedUrl, s3Client };
+const ticketAttachmentUpload = multer({
+  storage: multerS3({
+    s3: s3Client,
+    bucket: process.env.R2_BUCKET_NAME,
+    acl: 'public-read',
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    key: (req, file, cb) => cb(null, `support-tickets/${req.user._id}/${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`)
+  }),
+  limits: { fileSize: 8 * 1024 * 1024, files: 5 },
+  fileFilter: (_req, file, cb) => cb(null, /^(image\/(jpeg|png|webp|gif)|application\/pdf)$/.test(file.mimetype))
+}).array('attachments', 5);
+
+module.exports = { uploadAnswerSheet, testimonialImageUpload, uploadProctorRecording, uploadProctorSnapshot, ticketAttachmentUpload, getPublicR2Url, deleteFromR2, getPresignedUrl, s3Client };

@@ -26,6 +26,7 @@ router.get('/student/all', auth, requireMains, liveTestController.getAvailableTe
 router.get('/student/available', auth, requireMains, liveTestController.getCurrentlyAvailableTests);
 router.get('/student/upcoming', auth, requireMains, liveTestController.getUpcomingTests);
 router.get('/student/my-participations', auth, liveTestController.getMyParticipations);
+router.post('/:id/reopen', auth, adminAuth, liveTestController.reopenLiveTest);
 router.post('/:id/submit', auth, requireMains, uploadAnswerSheet, liveTestController.submitLiveTestAnswer);
 
 // Get single live test

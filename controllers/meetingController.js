@@ -30,12 +30,14 @@ const createMeeting = async (req, res) => {
     }
 
     // Create meeting
+    const audience = req.body.audience === 'mains' ? 'mains' : 'pre';
     const meeting = new Meeting({
       title: title.trim(),
       description: (description || '').trim(),
       meetingDate: meetingDateTime,
       duration: parseInt(duration),
       meetingLink: meetingLink.trim(),
+      audience,
       createdBy: userId,
       status: 'upcoming'
     });
@@ -63,7 +65,8 @@ const getAdminMeetings = async (req, res) => {
     const now = new Date();
 
     // Get all meetings created by this admin
-    const meetings = await Meeting.find({ createdBy: userId })
+    const audienceFilter = req.query.audience === 'mains' ? { audience: 'mains' } : req.query.audience === 'pre' ? { $or: [{ audience: 'pre' }, { audience: { $exists: false } }] } : {};
+    const meetings = await Meeting.find({ createdBy: userId, ...audienceFilter })
       .sort({ meetingDate: 1 });
 
     // Separate into upcoming and completed based on current time
@@ -110,7 +113,7 @@ const getAdminMeetings = async (req, res) => {
 const updateMeeting = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, meetingDate, duration, meetingLink, videoLink } = req.body;
+    const { title, description, meetingDate, duration, meetingLink, videoLink, audience } = req.body;
     const userId = req.user._id;
 
     // Find meeting
@@ -162,6 +165,7 @@ const updateMeeting = async (req, res) => {
         meeting.duration = parseInt(duration);
       }
       if (meetingLink) meeting.meetingLink = meetingLink.trim();
+      if (audience === 'pre' || audience === 'mains') meeting.audience = audience;
     }
 
     await meeting.save();
@@ -217,7 +221,11 @@ const getStudentMeetings = async (req, res) => {
     const now = new Date();
 
     // Get all meetings (students can see all admin-created meetings)
-    const meetings = await Meeting.find({ status: { $ne: 'cancelled' } })
+    const audience = req.query.audience === 'mains' ? 'mains' : req.query.audience === 'pre' ? 'pre' : null;
+    const filter = { status: { $ne: 'cancelled' } };
+    if (audience === 'mains') filter.audience = 'mains';
+    if (audience === 'pre') filter.$or = [{ audience: 'pre' }, { audience: { $exists: false } }];
+    const meetings = await Meeting.find(filter)
       .populate('createdBy', 'name email')
       .sort({ meetingDate: 1 });
 

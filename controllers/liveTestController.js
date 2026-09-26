@@ -283,14 +283,30 @@ exports.deleteLiveTest = async (req, res) => {
 // STUDENT CONTROLLERS
 // ============================================
 
+exports.reopenLiveTest = async (req, res) => {
+  try {
+    const { grantReopen } = require('../utils/examAccess');
+    const test = await LiveTest.findById(req.params.id);
+    if (!test) return res.status(404).json({ success: false, message: 'Live test not found' });
+    const { record, student } = await grantReopen({ examId: test._id, userId: req.body.userId, email: req.body.email, until: req.body.until, createdBy: req.user._id });
+    res.json({ success: true, data: record, student });
+  } catch (error) {
+    res.status(error.status || 400).json({ success: false, message: error.message });
+  }
+};
+
 exports.submitLiveTestAnswer = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ success: false, message: 'Please upload a PDF answer sheet' });
     const test = await LiveTest.findOne({ _id: req.params.id, isActive: true });
     if (!test) return res.status(404).json({ success: false, message: 'Live test not found' });
     const now = new Date();
-    if (now < new Date(test.startDateTime)) return res.status(400).json({ success: false, message: 'Answer submission has not started yet' });
-    const isLate = now > new Date(test.endDateTime);
+    const { activeReopen, examWindow } = require('../utils/examAccess');
+    const reopen = await activeReopen(test._id, req.user._id);
+    const window = examWindow(test, reopen);
+    if (window.waiting) return res.status(400).json({ success: false, message: 'Answer submission has not started yet' });
+    if (!window.canTake) return res.status(400).json({ success: false, message: 'This exam window has ended.' });
+    const isLate = now > new Date(test.endDateTime) && !window.reopened;
     const data = await LiveTestSubmission.findOneAndUpdate(
       { testId: test._id, studentId: req.user._id },
       { answerPDF: getPublicR2Url(req.file), answerPDFKey: req.file.key, originalName: req.file.originalname || 'answer-sheet.pdf', language: req.body.language === 'hi' ? 'hi' : 'en', submittedAt: now, isLate, status: 'submitted' },
@@ -333,23 +349,27 @@ exports.getAvailableTests = async (req, res) => {
     }).sort({ startDateTime: 1 });
 
     const submittedIds = new Set((await LiveTestSubmission.find({ studentId: req.user._id }).select('testId').lean()).map(item => item.testId.toString()));
-    // Add status to each test
+    const ExamReopen = require('../models/ExamReopen');
+    const { examWindow } = require('../utils/examAccess');
+    const reopens = await ExamReopen.find({ user: req.user._id, until: { $gte: now } }).lean();
+    const reopenByTest = new Map(reopens.map(item => [String(item.test), item]));
     const testsWithStatus = tests.map(test => {
       const testObj = test.toObject();
-      const start = new Date(test.startDateTime);
-      const end = new Date(test.endDateTime);
       if (submittedIds.has(test._id.toString())) {
         testObj.status = 'submitted';
         testObj.isAvailable = false;
         return testObj;
       }
-      
-      if (now >= start && now <= end) {
+      const window = examWindow(test, reopenByTest.get(String(test._id)));
+      testObj.startsInMs = window.startsInMs;
+      testObj.reopened = window.reopened;
+      if (window.reopened) testObj.reopenUntil = window.endTime;
+      if (window.canTake) {
         testObj.status = 'available';
         testObj.isAvailable = true;
         testObj.isUpcoming = false;
         testObj.isExpired = false;
-      } else if (now < start) {
+      } else if (window.waiting) {
         testObj.status = 'upcoming';
         testObj.isAvailable = false;
         testObj.isUpcoming = true;
@@ -360,7 +380,6 @@ exports.getAvailableTests = async (req, res) => {
         testObj.isUpcoming = false;
         testObj.isExpired = true;
       }
-      
       return testObj;
     });
 
@@ -383,18 +402,28 @@ exports.getCurrentlyAvailableTests = async (req, res) => {
   try {
     const now = new Date();
     
+    const ExamReopen = require('../models/ExamReopen');
+    const reopens = await ExamReopen.find({ user: req.user._id, until: { $gte: now } }).lean();
     const tests = await LiveTest.find({
       isActive: true,
-      startDateTime: { $lte: now },
-      endDateTime: { $gte: now }
+      $or: [
+        { startDateTime: { $lte: now }, endDateTime: { $gte: now } },
+        { _id: { $in: reopens.map(item => item.test) } }
+      ]
     }).sort({ startDateTime: 1 });
 
+    const reopenById = new Map(reopens.map(item => [String(item.test), item]));
     const testsWithStatus = tests.map(test => {
       const testObj = test.toObject();
+      const reopen = reopenById.get(String(test._id));
       testObj.status = 'available';
       testObj.isAvailable = true;
       testObj.isUpcoming = false;
       testObj.isExpired = false;
+      if (reopen) {
+        testObj.reopened = true;
+        testObj.reopenUntil = reopen.until;
+      }
       return testObj;
     });
 

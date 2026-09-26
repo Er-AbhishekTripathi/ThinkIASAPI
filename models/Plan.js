@@ -16,7 +16,8 @@ const planSchema = new mongoose.Schema({
   duration: { type: String, default: '', trim: true, maxlength: 100 },
   features: [{ type: String, trim: true }],
   displayOrder: { type: Number, default: 0, min: 0 },
-  isActive: { type: Boolean, default: true }
+  isActive: { type: Boolean, default: true },
+  isDeleted: { type: Boolean, default: false }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Plan', planSchema);

@@ -1,4 +1,5 @@
 const Program = require('../models/Program');
+const Batch = require('../models/Batch');
 
 // @desc    Get all programs
 // @route   GET /api/programs
@@ -261,6 +262,15 @@ const deleteProgram = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Program not found'
+      });
+    }
+
+    const batchesCount = await Batch.countDocuments({ programId: program._id });
+    if (batchesCount) {
+      return res.status(409).json({
+        success: false,
+        batchesCount,
+        message: `Cannot delete this program: it still has ${batchesCount} batch(es). First delete its batches, then try deleting the program again.`
       });
     }
     

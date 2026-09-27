@@ -60,10 +60,10 @@ exports.createLiveTest = async (req, res) => {
 
     await liveTest.save();
     if (liveTest.isActive) publishSystemNotification({
-      title: `New test: ${liveTest.title}`,
-      body: liveTest.description || 'A new test series is available.',
-      titleHindi: `नया टेस्ट: ${liveTest.titleHi || liveTest.title}`, bodyHindi: liveTest.descriptionHi || 'नई टेस्ट सीरीज़ उपलब्ध है।',
-      type: 'test_series', audience: 'mains',
+      title: `Live Test: ${liveTest.title}`,
+      body: `Starts ${new Date(liveTest.startDateTime).toLocaleString('en-IN')}. Join from Live Tests.`,
+      titleHindi: `लाइव टेस्ट: ${liveTest.titleHi || liveTest.title}`, bodyHindi: liveTest.descriptionHi || 'लाइव टेस्ट उपलब्ध है। Live Tests से जॉइन करें।',
+      type: 'live_test', audience: 'mains',
       link: '/live-test', createdBy: req.user._id
     }).catch(error => console.error('Test notification failed:', error.message));
 

@@ -65,7 +65,7 @@ const getAdminMeetings = async (req, res) => {
     const now = new Date();
 
     // Get all meetings created by this admin
-    const audienceFilter = req.query.audience === 'mains' ? { audience: 'mains' } : req.query.audience === 'pre' ? { $or: [{ audience: 'pre' }, { audience: { $exists: false } }] } : {};
+    const audienceFilter = req.query.audience === 'mains' ? { audience: 'mains' } : req.query.audience === 'pre' ? { audience: 'pre' } : {};
     const meetings = await Meeting.find({ createdBy: userId, ...audienceFilter })
       .sort({ meetingDate: 1 });
 
@@ -224,7 +224,7 @@ const getStudentMeetings = async (req, res) => {
     const audience = req.query.audience === 'mains' ? 'mains' : req.query.audience === 'pre' ? 'pre' : null;
     const filter = { status: { $ne: 'cancelled' } };
     if (audience === 'mains') filter.audience = 'mains';
-    if (audience === 'pre') filter.$or = [{ audience: 'pre' }, { audience: { $exists: false } }];
+    if (audience === 'pre') filter.audience = 'pre';
     const meetings = await Meeting.find(filter)
       .populate('createdBy', 'name email')
       .sort({ meetingDate: 1 });

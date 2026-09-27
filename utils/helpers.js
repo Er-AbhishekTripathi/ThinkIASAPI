@@ -89,7 +89,11 @@ const getMenuItems = (user) => {
       
       { name: 'Manage Coupon', path: '/manage-coupon', icon: 'fact_check' },
       { name: 'Study Module', path: '/study-module', icon: 'fact_check' },
-      
+
+      { name: 'Manage Program', path: '/manage-program', icon: 'fact_check' },
+      { name: 'Manage Answer Writing', path: '/answer-writing', icon: 'fact_check' },
+      { name: 'Mains Resources Directory', path: '/mains-directory-master', icon: 'library_books' },
+
       
       
       { name: 'Live Tests', path: '/live-test', icon: 'description' },
@@ -134,7 +138,7 @@ const getMenuItems = (user) => {
           { name: 'Mains', path: '', icon: 'edit_note', children: [
             { name: 'Daily Answer Writing', path: '/student-answer-writing', icon: 'description' },
             { name: 'DAW Evaluation', path: '/mains-results', icon: 'assignment' },
-            { name: 'Study Materials', path: '/pre-materials', icon: 'library_books' },
+            { name: 'Study Materials', path: '/mains-materials', icon: 'library_books' },
             { name: 'Mentorship Sessions', path: '/mains-session', icon: 'groups' },
             { name: 'Live Tests', path: '/live-test', icon: 'description' }
           ] },
@@ -160,7 +164,7 @@ const getMenuItems = (user) => {
           { name: 'Mains', path: '', icon: 'edit_note', children: [
             { name: 'Daily Answer Writing', path: '/student-answer-writing', icon: 'description' },
             { name: 'DAW Evaluation', path: '/mains-results', icon: 'assignment' },
-            { name: 'Study Materials', path: '/pre-materials', icon: 'library_books' },
+            { name: 'Study Materials', path: '/mains-materials', icon: 'library_books' },
             { name: 'Mentorship Sessions', path: '/mains-session', icon: 'groups' },
             { name: 'Live Tests', path: '/live-test', icon: 'description' }
           ] },

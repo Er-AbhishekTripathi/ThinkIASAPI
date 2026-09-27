@@ -52,22 +52,14 @@ class TestService {
 
   static async getAvailableTestsForStudent(userId) {
   const now = new Date();
-  const User = require('../models/User');
   const ExamReopen = require('../models/ExamReopen');
-  const user = await User.findById(userId).select('type').lean();
   const reopens = userId ? await ExamReopen.find({ user: userId, until: { $gte: now } }).select('test') : [];
   const reopenIds = new Set(reopens.map(item => String(item.test)));
-  const seriesKinds = [];
-  if (user?.type === 'pre' || user?.type === 'combo') seriesKinds.push('pre');
   const tests = await Test.find({
     isActive: true,
     $and: [
       { $or: [{ endTime: { $gt: now } }, { _id: { $in: reopens.map(item => item.test) } }] },
-      { $or: [
-        { seriesId: null },
-        { seriesId: { $exists: false } },
-        ...(seriesKinds.length ? [{ seriesKind: { $in: seriesKinds } }] : [])
-      ] }
+      { $or: [{ seriesId: null }, { seriesId: { $exists: false } }] }
     ]
   })
     .populate({

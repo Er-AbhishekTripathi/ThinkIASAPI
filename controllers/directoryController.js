@@ -1,5 +1,6 @@
 const Directory = require('../models/Directory');
 const { normalizeMaterialLink } = require('../utils/materialLink');
+const { canAccessPlan } = require('../utils/planAccess');
 
 const normalizeSection = (value) => (value === 'mains' ? 'mains' : 'pre');
 const sectionFilter = (section) => (section === 'mains'
@@ -196,11 +197,16 @@ const createFile = async (req, res) => {
 const getDirectoryTree = async (req, res) => {
   try {
     const userId = req.user._id;
-    const { parentId, section } = req.query;
+    const { parentId } = req.query;
+    const section = normalizeSection(req.query.section);
+    if (req.user.role === 'student' && !canAccessPlan(req.user.type, section)) {
+      return res.status(403).json({
+        success: false,
+        message: section === 'mains' ? 'An active Mains plan is required.' : 'An active Prelims plan is required.'
+      });
+    }
 
-    // For both admin and students, show ALL directories
-    // Students will have read-only access on frontend
-    let query = { ...sectionFilter(normalizeSection(section)) };
+    let query = { ...sectionFilter(section) };
     
     if (parentId) {
       query.parent = parentId;

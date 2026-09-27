@@ -1,3 +1,5 @@
+const mammoth = require('mammoth');
+
 function parseCSV(text) {
   const rows = []; let row = [], cell = '', quoted = false;
   text = text.replace(/^\uFEFF/, '');
@@ -36,6 +38,146 @@ function parseCSV(text) {
   });
 }
 
+function parseDocumentQuestionBlock(blockText) {
+  const lines = blockText
+    .replace(/\r/g, '\n')
+    .split('\n')
+    .map(line => line.replace(/\u00a0/g, ' ').trim())
+    .filter(line => line.length > 0);
+
+  if (!lines.length) return null;
+
+  const answerMatch = blockText.match(/(?:Answer|उत्तर)\s*[:\-]?\s*(?:\(([A-Da-d])\)|\b([A-Da-d])\b)/i);
+  const answerLetter = (answerMatch?.[1] || answerMatch?.[2] || '').toUpperCase();
+  const answerIndex = 'ABCD'.indexOf(answerLetter);
+  const answerStart = blockText.search(/(?:Answer|उत्तर)\s*[:\-]?/i);
+
+  const explanationMatch = blockText.match(/(?:Explanation|व्याख्या)\s*[:\-]?\s*(.*)/is);
+  const explanationText = explanationMatch ? explanationMatch[1].trim() : '';
+
+  const optionStart = blockText.search(/\([A-Da-d]\)\s*/);
+  const questionSection = optionStart >= 0 ? blockText.slice(0, optionStart) : blockText;
+  const optionEnd = answerStart >= 0 ? answerStart : blockText.length;
+  const inlineOptions = optionStart >= 0 ? blockText.slice(optionStart, optionEnd) : '';
+  let questionParts = [];
+  const optionParts = {};
+  let inExplanation = false;
+
+  for (const optionMatch of inlineOptions.matchAll(/\(([A-Da-d])\)\s*([\s\S]*?)(?=\([A-Da-d]\)\s*|$)/g)) {
+    optionParts[optionMatch[1].toUpperCase()] = optionMatch[2].trim();
+  }
+
+  for (const line of questionSection.split('\n').map(value => value.trim()).filter(Boolean)) {
+    if (/^(?:Answer|उत्तर)\s*[:\-]?/i.test(line)) {
+      continue;
+    }
+    if (/^(?:Explanation|व्याख्या)\s*[:\-]?/i.test(line)) {
+      inExplanation = true;
+      continue;
+    }
+    if (inExplanation) {
+      continue;
+    }
+
+    const optionMatch = line.match(/^\(?([A-Da-d])\)?[.)]\s*(.*)$/);
+    if (optionMatch) {
+      optionParts[optionMatch[1].toUpperCase()] = optionMatch[2].trim();
+      continue;
+    }
+
+    questionParts.push(line);
+  }
+
+  const questionText = questionParts
+    .join(' ')
+    .replace(/^\d+[\.)]\s*/i, '')
+    .replace(/^(?:Question|प्रश्न)\s*\d+\s*[:\.-]?\s*/i, '')
+    .trim();
+  const cleanExplanation = explanationText || '';
+
+  const optionValues = ['A', 'B', 'C', 'D'].map(letter => {
+    const value = optionParts[letter] || '';
+    return { english: value, hindi: value };
+  });
+
+  if (!questionText || optionValues.every(option => !option.english)) {
+    return null;
+  }
+
+  return {
+    question: { english: questionText, hindi: questionText },
+    description: { english: cleanExplanation, hindi: cleanExplanation },
+    options: optionValues,
+    correctAnswer: answerIndex >= 0 ? answerIndex : 0,
+    tags: []
+  };
+}
+
+function parseDocumentTextQuestions(text) {
+  const normalized = String(text || '').replace(/\r/g, '\n').replace(/\u00a0/g, ' ');
+  const blocks = [];
+  const lines = normalized.split('\n');
+  let current = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (/^(?:Q(?:uestion)?\s*)?\d+\s*[\.)]/i.test(trimmed)) {
+      if (current.length) {
+        blocks.push(current.join('\n'));
+      }
+      current = [trimmed];
+      continue;
+    }
+
+    if (trimmed) current.push(trimmed);
+  }
+
+  if (current.length) {
+    blocks.push(current.join('\n'));
+  }
+
+  if (!blocks.length) {
+    const fallback = normalized.trim();
+    if (fallback) return [parseDocumentQuestionBlock(fallback)].filter(Boolean);
+    return [];
+  }
+
+  return blocks.map(parseDocumentQuestionBlock).filter(Boolean);
+}
+
+async function parseQuestionImportFile(fileBuffer, fileName) {
+  if (!Buffer.isBuffer(fileBuffer)) {
+    throw new Error('No file content was provided.');
+  }
+
+  const lowerName = String(fileName || '').toLowerCase();
+  const isZipDocument = fileBuffer.length >= 4 && fileBuffer.subarray(0, 4).toString('hex') === '504b0304';
+
+  if (/\.json$/i.test(lowerName) && isZipDocument) {
+    throw new Error('This file contains a DOCX document but has a .json extension. Rename it to .docx and upload it again.');
+  }
+
+  if (/\.csv$/i.test(lowerName)) {
+    return parseCSV(fileBuffer.toString('utf8'));
+  }
+
+  if (/\.json$/i.test(lowerName)) {
+    const parsed = JSON.parse(fileBuffer.toString('utf8'));
+    return Array.isArray(parsed) ? parsed : (parsed.questions || []);
+  }
+
+  if (/\.docx?$/i.test(lowerName)) {
+    const result = await mammoth.extractRawText({ buffer: fileBuffer });
+    const questions = parseDocumentTextQuestions(result.value || '');
+    if (!questions.length) {
+      throw new Error('No questions could be detected inside the DOCX file. Please use the provided CSV template or a clearly formatted question list.');
+    }
+    return questions;
+  }
+
+  throw new Error('Unsupported file type. Please upload a CSV, JSON, or DOCX file.');
+}
+
 function validateQuestions(input) {
   if (!Array.isArray(input) || !input.length || input.length > 1000) throw new Error('Provide between 1 and 1000 questions.');
   const errors = [];
@@ -52,4 +194,4 @@ function validateQuestions(input) {
   if (errors.length) throw new Error(errors.slice(0, 20).join('\n'));
   return input;
 }
-module.exports = { parseCSV, validateQuestions };
+module.exports = { parseCSV, validateQuestions, parseQuestionImportFile, parseDocumentTextQuestions };

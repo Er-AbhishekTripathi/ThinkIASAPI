@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { parseCSV, validateQuestions } = require('../utils/questionImport');
+const { parseCSV, validateQuestions, parseQuestionImportFile } = require('../utils/questionImport');
 const { mergePlanAccess } = require('../utils/planAccess');
 const { visibleAudiences, audienceTypes } = require('../utils/notificationAudience');
 const { normalizeMaterialLink } = require('../utils/materialLink');
@@ -88,6 +88,52 @@ test('Google Sheet links convert to CSV export and exam windows honour reopen', 
   assert.ok(mainsGroup.children.some(child => child.path === '/mains-session'));
   assert.ok(!mainsGroup.children.some(child => child.path === '/pre-session'));
   assert.ok(mainsMenu.some(item => item.path === '/mains-test-series'));
+});
+
+test('Google Sheet import retries alternate CSV export endpoints when the first export is blocked', async () => {
+  const { fetchSheetQuestions } = require('../utils/googleSheetImport');
+  const originalFetch = global.fetch;
+  const calls = [];
+  global.fetch = async (url) => {
+    calls.push(String(url));
+    if (String(url).includes('/export?format=csv')) {
+      return { ok: false, status: 403, text: async () => 'Forbidden' };
+    }
+    if (String(url).includes('/gviz/tq')) {
+      return { ok: true, text: async () => 'Question (English),Question (Hindi),Option A (English),Option B (English),Option C (English),Option D (English),Correct Answer\nCapital of India?,भारत की राजधानी?,Delhi,Mumbai,Chennai,Kolkata,A' };
+    }
+    return { ok: false, status: 404, text: async () => 'Not found' };
+  };
+
+  try {
+    const rows = await fetchSheetQuestions('https://docs.google.com/spreadsheets/d/abc123XYZ/edit?gid=99#gid=99');
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].question.english, 'Capital of India?');
+    assert.ok(calls.some(call => call.includes('/gviz/tq')));
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test('DOCX uploads are converted into the same question schema as CSV files', async () => {
+  const mammoth = require('mammoth');
+  const originalExtract = mammoth.extractRawText;
+  mammoth.extractRawText = async () => {
+    return {
+      value: `Question 1\nWhat is the capital of India?\nA) Delhi\nB) Mumbai\nC) Chennai\nD) Kolkata\nAnswer: A\nExplanation: Delhi is the capital city.`
+    };
+  };
+
+  try {
+    const rows = await parseQuestionImportFile(Buffer.from('fake-docx'), 'questions.docx');
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].question.english, 'What is the capital of India?');
+    assert.deepEqual(rows[0].options.map(item => item.english), ['Delhi', 'Mumbai', 'Chennai', 'Kolkata']);
+    assert.equal(rows[0].correctAnswer, 0);
+    assert.ok(rows[0].description.english.includes('Delhi is the capital city'));
+  } finally {
+    mammoth.extractRawText = originalExtract;
+  }
 });
 test('web and app login accept the same student email regardless of case, and mobile number', () => {
   const { loginQuery } = require('../utils/loginAccount');

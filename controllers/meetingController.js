@@ -1,4 +1,5 @@
 const Meeting = require('../models/Meeting');
+const { canAccessPlan } = require('../utils/planAccess');
 
 // Create new meeting
 const createMeeting = async (req, res) => {
@@ -223,8 +224,20 @@ const getStudentMeetings = async (req, res) => {
     // Get all meetings (students can see all admin-created meetings)
     const audience = req.query.audience === 'mains' ? 'mains' : req.query.audience === 'pre' ? 'pre' : null;
     const filter = { status: { $ne: 'cancelled' } };
-    if (audience === 'mains') filter.audience = 'mains';
-    if (audience === 'pre') filter.audience = 'pre';
+    if (req.user.role === 'student') {
+      const requested = audience || (req.user.type === 'mains' ? 'mains' : req.user.type === 'combo' ? null : 'pre');
+      if (requested && !canAccessPlan(req.user.type, requested)) {
+        return res.status(403).json({
+          success: false,
+          message: requested === 'mains' ? 'An active Mains plan is required.' : 'An active Prelims plan is required.'
+        });
+      }
+      if (requested === 'mains') filter.audience = 'mains';
+      if (requested === 'pre') filter.audience = 'pre';
+    } else {
+      if (audience === 'mains') filter.audience = 'mains';
+      if (audience === 'pre') filter.audience = 'pre';
+    }
     const meetings = await Meeting.find(filter)
       .populate('createdBy', 'name email')
       .sort({ meetingDate: 1 });

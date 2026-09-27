@@ -35,6 +35,11 @@ const programSchema = new mongoose.Schema({
     min: [0, 'Discounted price cannot be negative'],
     default: null
   },
+  displayImageHindi: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   displayImage: {
     type: String,
     required: [true, 'Display image URL is required'],

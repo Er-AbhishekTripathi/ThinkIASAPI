@@ -1,4 +1,5 @@
 const DemoResultService = require('../services/demoResultService');
+const DemoTest = require('../models/DemoTest');
 const User = require('../models/User');
 const { calculateRanking } = require('../utils/helpers');
 const { handleError } = require('../middleware/errorHandler');
@@ -312,10 +313,31 @@ const getStudentDemoTestResultByAdmin = async (req, res) => {
   }
 };
 
+const getDemoTestResultsByAdmin = async (req, res) => {
+  try {
+    const test = await DemoTest.findById(req.params.testId).select('_id title questionUids');
+    if (!test) return res.status(404).json({ success: false, message: 'Demo test not found.' });
+    const results = await DemoResultService.getAdminTestResults(req.params.testId);
+    res.json({ test, results });
+  } catch (error) {
+    handleError(res, error, messages.en.serverError);
+  }
+};
+
+const getAllDemoResultsByAdmin = async (req, res) => {
+  try {
+    res.json(await DemoResultService.getAllAdminResults());
+  } catch (error) {
+    handleError(res, error, messages.en.serverError);
+  }
+};
+
 module.exports = {
   getStudentDemoResults,
   getStudentDemoTestResult,
   getDemoResultById,
   getStudentDemoResultsByAdmin,
-  getStudentDemoTestResultByAdmin
+  getStudentDemoTestResultByAdmin,
+  getDemoTestResultsByAdmin,
+  getAllDemoResultsByAdmin
 };

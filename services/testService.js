@@ -161,8 +161,11 @@ class TestService {
       .sort({ createdAt: -1 });
   }
 
-  static async getAllActiveTests() {
-    return await Test.find({ isActive: true, seriesId: { $in: [null, undefined] } })
+  static async getAllTestsForAdmin(seriesKind) {
+    const filter = seriesKind
+      ? { seriesKind, isDeleted: { $ne: true } }
+      : { isActive: true, seriesId: { $in: [null, undefined] } };
+    return await Test.find(filter)
       .populate({
         path: 'questions',
         select: '_id question.english uid',

@@ -18,45 +18,5 @@ async function list(Model,filter,req,res,sort={createdAt:-1},select,mapper=x=>x)
 }
 const regex=value=>String(value||'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 const text=(req,english,hindi)=>req.query.lang==='hi'?(hindi||english):english;
-const refId=value=>value&&value._id?value._id:value||null;
-const profile=(u,req)=>{
-  const image=mediaUrl(u.profileImage,req);
-  const address=u.address||{};
-  const program=u.programId&&u.programId.programName?{id:u.programId._id,name:u.programId.programName,nameHindi:u.programId.programNameHindi||null,image:mediaUrl(u.programId.displayImage,req)}:null;
-  const batch=u.batchId&&u.batchId.batchName?{id:u.batchId._id,name:u.batchId.batchName,nameHindi:u.batchId.batchNameHindi||null}:null;
-  return {
-    id:u._id,
-    _id:u._id,
-    fullName:u.fullName,
-    email:u.email,
-    phone:u.phone||'',
-    image,
-    profileImage:image,
-    role:u.role,
-    type:u.type,
-    isActive:u.isActive!==false,
-    emailVerified:!!u.emailVerifiedAt,
-    emailVerifiedAt:u.emailVerifiedAt||null,
-    name:u.fullName,
-    mobileNo:u.phone||'',
-    pincode:address.pincode||'',
-    houseNo:address.houseNo||'',
-    locality:address.locality||'',
-    colony:address.colony||'',
-    city:address.city||'',
-    address:{pincode:address.pincode||'',houseNo:address.houseNo||'',locality:address.locality||'',colony:address.colony||'',city:address.city||''},
-    preferredLanguage:u.preferredLanguage||'en',
-    notificationsEnabled:u.notificationsEnabled!==false,
-    purchasedPlanId:u.purchasedPlanId||null,
-    programId:refId(u.programId),
-    batchId:refId(u.batchId),
-    program,
-    batch,
-    planActivatedAt:u.planActivatedAt||null,
-    planExpiryAt:u.planExpiryAt||null,
-    createdAt:u.createdAt||null,
-    updatedAt:u.updatedAt||null
-  };
-};
-const active=()=>({isActive:{$ne:false}});
-module.exports={fail,handle,page,list,regex,text,profile,mediaUrl,active};
+const profile=u=>({id:u._id,fullName:u.fullName,email:u.email,phone:u.phone,address:u.address||{},preferredLanguage:u.preferredLanguage||'en',notificationsEnabled:u.notificationsEnabled!==false,profileImage:u.profileImage||null,emailVerified:!!u.emailVerifiedAt,type:u.type});
+module.exports={fail,handle,page,list,regex,text,profile};

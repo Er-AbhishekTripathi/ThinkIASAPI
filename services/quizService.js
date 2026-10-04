@@ -28,7 +28,7 @@ class QuizService {
 
   static async getActiveQuizzes() {
     return await Quiz.find({ isActive: true })
-      .populate('createdBy', 'fullName email')
+      .populate('createdBy', 'fullName email profileImage')
       .sort({ createdAt: -1 });
   }
 
@@ -197,7 +197,7 @@ static async submitQuiz(quizId, submissionData) {
 
   static async getAllQuizzes() {
     return await Quiz.find()
-      .populate('createdBy', 'fullName email')
+      .populate('createdBy', 'fullName email profileImage')
       .sort({ createdAt: -1 });
   }
 

@@ -4,5 +4,5 @@ function page(query){const page=Number(query.page||1),limit=Number(query.limit||
 async function list(Model,filter,req,res,sort={createdAt:-1},select,mapper=x=>x){const p=page(req.query);let q=Model.find(filter).sort(sort).skip(p.skip).limit(p.limit);if(select)q=q.select(select);const[rows,total]=await Promise.all([q.lean(),Model.countDocuments(filter)]);res.json({success:true,data:rows.map(mapper),pagination:{page:p.page,limit:p.limit,total,pages:Math.ceil(total/p.limit)}});}
 const regex=value=>String(value||'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 const text=(req,english,hindi)=>req.query.lang==='hi'?(hindi||english):english;
-const profile=u=>({id:u._id,fullName:u.fullName,email:u.email,phone:u.phone,address:u.address||{},preferredLanguage:u.preferredLanguage||'en',notificationsEnabled:u.notificationsEnabled!==false,emailVerified:!!u.emailVerifiedAt,type:u.type});
+const profile=u=>({id:u._id,fullName:u.fullName,email:u.email,phone:u.phone,address:u.address||{},preferredLanguage:u.preferredLanguage||'en',notificationsEnabled:u.notificationsEnabled!==false,profileImage:u.profileImage||null,emailVerified:!!u.emailVerifiedAt,type:u.type});
 module.exports={fail,handle,page,list,regex,text,profile};

@@ -33,6 +33,14 @@ exports.updateProfile=handle(async(req,res)=>{
   const user=await User.findByIdAndUpdate(req.user._id,{$set},{new:true});
   res.json({success:true,message:'Profile updated.',data:{user:profile(user)}});
 });
+exports.updateProfilePicture=handle(async(req,res)=>{
+  const uploaded=req.files?.profileImage?.[0]||req.files?.profilePic?.[0]||req.file;
+  if(!uploaded)throw fail(400,'Please upload a profile image.');
+  if(!/^image\/(jpeg|png|webp|gif)$/.test(uploaded.mimetype))throw fail(400,'Upload a JPEG, PNG, WebP or GIF image.');
+  const profileImage=`data:${uploaded.mimetype};base64,${uploaded.buffer.toString('base64')}`;
+  const user=await User.findByIdAndUpdate(req.user._id,{$set:{profileImage}},{new:true});
+  res.json({success:true,message:'Profile picture updated.',data:{user:profile(user)}});
+});
 exports.preferences=handle(async(req,res)=>{
   const $set={};
   if(req.body.preferredLanguage)$set.preferredLanguage=req.body.preferredLanguage;

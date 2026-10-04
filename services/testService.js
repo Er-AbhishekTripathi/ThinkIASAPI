@@ -33,7 +33,7 @@ class TestService {
     const query = Test.findById(testId);
     
     if (options.populateCreator) {
-      query.populate('createdBy', 'fullName email');
+      query.populate('createdBy', 'fullName email profileImage');
     }
     
     if (options.populateQuestions) {
@@ -52,22 +52,14 @@ class TestService {
 
   static async getAvailableTestsForStudent(userId) {
   const now = new Date();
-  const User = require('../models/User');
   const ExamReopen = require('../models/ExamReopen');
-  const user = await User.findById(userId).select('type').lean();
   const reopens = userId ? await ExamReopen.find({ user: userId, until: { $gte: now } }).select('test') : [];
   const reopenIds = new Set(reopens.map(item => String(item.test)));
-  const seriesKinds = [];
-  if (user?.type === 'pre' || user?.type === 'combo') seriesKinds.push('pre');
   const tests = await Test.find({
     isActive: true,
     $and: [
       { $or: [{ endTime: { $gt: now } }, { _id: { $in: reopens.map(item => item.test) } }] },
-      { $or: [
-        { seriesId: null },
-        { seriesId: { $exists: false } },
-        ...(seriesKinds.length ? [{ seriesKind: { $in: seriesKinds } }] : [])
-      ] }
+      { $or: [{ seriesId: null }, { seriesId: { $exists: false } }] }
     ]
   })
     .populate({
@@ -169,8 +161,11 @@ class TestService {
       .sort({ createdAt: -1 });
   }
 
-  static async getAllActiveTests() {
-    return await Test.find({ isActive: true, seriesId: { $in: [null, undefined] } })
+  static async getAllTestsForAdmin(seriesKind) {
+    const filter = seriesKind
+      ? { seriesKind, isDeleted: { $ne: true } }
+      : { isActive: true, seriesId: { $in: [null, undefined] } };
+    return await Test.find(filter)
       .populate({
         path: 'questions',
         select: '_id question.english uid',
@@ -189,7 +184,7 @@ class TestService {
           select: 'tag'
         }
       })
-      .populate('createdBy', 'fullName email')
+      .populate('createdBy', 'fullName email profileImage')
       .exec();
   }
 }

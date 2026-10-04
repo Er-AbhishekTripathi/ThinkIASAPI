@@ -2,6 +2,22 @@ const Test = require('../models/Test');
 const Result = require('../models/Result');
 const User = require('../models/User');
 const Question = require('../models/Question');
+const SupportTicket = require('../models/SupportTicket');
+const QuizSubmission = require('../models/QuizSubmission');
+const DemoResult = require('../models/DemoResult');
+
+const withExistingTest = () => [
+  {
+    $lookup: {
+      from: Test.collection.name,
+      localField: 'test',
+      foreignField: '_id',
+      as: 'linkedTest'
+    }
+  },
+  { $unwind: '$linkedTest' },
+  { $match: { 'linkedTest.isDeleted': { $ne: true } } }
+];
 
 class AnalyticsService {
   static async getTestAnalytics(testId) {
@@ -14,7 +30,7 @@ class AnalyticsService {
     
     if (!test) throw new Error('Test not found');
 
-    const results = await Result.find({ test: testId }).populate('student', 'fullName email');
+    const results = await Result.find({ test: testId }).populate('student', 'fullName email profileImage');
     const totalStudents = results.length;
     
     const scores = results.map(r => r.score);
@@ -67,15 +83,46 @@ class AnalyticsService {
   }
 
   static async getPlatformStatistics() {
-    const totalTests = await Test.countDocuments();
-    const totalStudents = await User.countDocuments({ role: 'student' });
-    const totalResults = await Result.countDocuments();
-    
-    const recentResults = await Result.find()
-      .populate('test', 'title')
-      .populate('student', 'fullName')
-      .sort({ submittedAt: -1 })
-      .limit(10);
+    const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const [totalTests, prelimsTests, mainsTests, totalStudents, resultCounts, totalQuestions, newSupportRequests, openSupportRequests, quizAttempts, recentQuizAttempts, demoAttempts, recentDemoAttempts] = await Promise.all([
+      Test.countDocuments({ isDeleted: { $ne: true } }),
+      Test.countDocuments({ isDeleted: { $ne: true }, seriesKind: 'pre' }),
+      Test.countDocuments({ isDeleted: { $ne: true }, seriesKind: 'mains' }),
+      User.countDocuments({ role: 'student' }),
+      Result.aggregate([...withExistingTest(), { $count: 'count' }]),
+      Question.countDocuments(),
+      SupportTicket.countDocuments({ createdAt: { $gte: last24Hours } }),
+      SupportTicket.countDocuments({ status: { $in: ['open', 'in_progress'] } }),
+      QuizSubmission.countDocuments(),
+      QuizSubmission.countDocuments({ submittedAt: { $gte: last24Hours } }),
+      DemoResult.countDocuments(),
+      DemoResult.countDocuments({ submittedAt: { $gte: last24Hours } })
+    ]);
+    const totalResults = resultCounts[0]?.count || 0;
+
+    const recentResults = await Result.aggregate([
+      ...withExistingTest(),
+      { $sort: { submittedAt: -1 } },
+      { $limit: 10 },
+      {
+        $lookup: {
+          from: User.collection.name,
+          localField: 'student',
+          foreignField: '_id',
+          as: 'studentRecord'
+        }
+      },
+      { $unwind: { path: '$studentRecord', preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          studentName: { $ifNull: ['$studentRecord.fullName', 'Deleted student'] },
+          testTitle: '$linkedTest.title',
+          score: 1,
+          totalMarks: 1,
+          submittedAt: 1
+        }
+      }
+    ]);
 
     const activeTests = await Test.countDocuments({ 
       isActive: true,
@@ -90,12 +137,21 @@ class AnalyticsService {
 
     return {
       totalTests,
+      prelimsTests,
+      mainsTests,
       totalStudents,
       totalResults,
+      totalQuestions,
+      newSupportRequests,
+      openSupportRequests,
+      quizAttempts,
+      recentQuizAttempts,
+      demoAttempts,
+      recentDemoAttempts,
       activeTests,
       recentResults: recentResults.map(result => ({
-        studentName: result.student?.fullName || 'Deleted student',
-        testTitle: result.test?.title || 'Deleted test',
+        studentName: result.studentName,
+        testTitle: result.testTitle,
         score: result.score,
         totalMarks: result.totalMarks,
         submittedAt: result.submittedAt
@@ -123,17 +179,19 @@ class AnalyticsService {
 
   // Aggregated payload for admin dashboard graphs (avoids sending full tests/results to the client)
   static async getDashboardCharts() {
-    const [totalTests, totalStudents, totalResults] = await Promise.all([
-      Test.countDocuments(),
+    const [totalTests, totalStudents, resultCounts] = await Promise.all([
+      Test.countDocuments({ isDeleted: { $ne: true } }),
       User.countDocuments({ role: 'student' }),
-      Result.countDocuments()
+      Result.aggregate([...withExistingTest(), { $count: 'count' }])
     ]);
+    const totalResults = resultCounts[0]?.count || 0;
 
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
     sevenDaysAgo.setHours(0, 0, 0, 0);
 
     const trendAgg = await Result.aggregate([
+      ...withExistingTest(),
       { $match: { submittedAt: { $gte: sevenDaysAgo } } },
       {
         $group: {
@@ -157,6 +215,7 @@ class AnalyticsService {
     }
 
     const distributionAgg = await Result.aggregate([
+      ...withExistingTest(),
       {
         $project: {
           ratio: { $cond: [{ $gt: ['$totalMarks', 0] }, { $divide: ['$score', '$totalMarks'] }, 0] }

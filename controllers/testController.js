@@ -4,14 +4,19 @@ const { formatTestForStudent } = require('../utils/helpers');
 const { handleError } = require('../middleware/errorHandler');
 const messages = require('../utils/messages');
 const { examWindow, activeReopen } = require('../utils/examAccess');
+const { canAccessPlan } = require('../utils/planAccess');
 
 const getTests = async (req, res) => {
   try {
     let tests;
     
     if (req.user.role === 'admin') {
-      tests = await TestService.getAllActiveTests();
+      const seriesKind = ['pre', 'mains'].includes(req.query.seriesKind) ? req.query.seriesKind : undefined;
+      tests = await TestService.getAllTestsForAdmin(seriesKind);
     } else {
+      if (!canAccessPlan(req.user.type, 'pre')) {
+        return res.status(403).json({ success: false, message: 'An active Prelims plan is required.' });
+      }
       tests = await TestService.getAvailableTestsForStudent(req.user._id);
       
       // Check submission status for each test
@@ -49,6 +54,9 @@ const getTests = async (req, res) => {
 const getTestById = async (req, res) => {
   try {
     if (req.user.role === 'student') {
+      if (!canAccessPlan(req.user.type, 'pre')) {
+        return res.status(403).json({ success: false, message: 'An active Prelims plan is required.' });
+      }
       const test = await TestService.getTestById(req.params.id, { populateQuestions: true });
       if (!test) return res.status(404).json({ message: messages.en.testNotFound });
       const existingResult = await ResultService.getStudentTestResult(req.params.id, req.user._id);
@@ -83,6 +91,9 @@ const getTestById = async (req, res) => {
 
 const submitTest = async (req, res) => {
   try {
+    if (!canAccessPlan(req.user.type, 'pre')) {
+      return res.status(403).json({ success: false, message: 'An active Prelims plan is required.' });
+    }
     const { answers, timeTaken } = req.body;
     
     if (!Array.isArray(answers)) {

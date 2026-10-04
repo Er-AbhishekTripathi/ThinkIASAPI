@@ -3,7 +3,7 @@ const multer=require('multer');
 const {body,param,query,validationResult}=require('express-validator');
 const catalog=require('../controllers/appCatalogController');
 const account=require('../controllers/appAccountController');
-const {auth}=require('../middleware/auth');
+const {auth,adminAuth}=require('../middleware/auth');
 const {apiLimiter}=require('../middleware/rateLimiter');
 
 const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:2*1024*1024}});
@@ -20,6 +20,15 @@ const mongoId=field=>param(field).isMongoId().withMessage('A valid id is require
 const group=(value)=>(req,_res,next)=>{req.query.group=value;next();};
 
 router.get('/config',catalog.config);
+router.put('/config',auth,adminAuth,apiLimiter,validate([
+  body('version').isString().trim().isLength({min:1,max:30}).withMessage('Enter a valid app version.'),
+  body('phone').isString().trim().isLength({max:30}),
+  body('email').isString().trim().isLength({max:254}).bail().custom(value=>!value||/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)).withMessage('Enter a valid email address.'),
+  body('whatsapp').isString().trim().isLength({max:30}),
+  ...['androidUrl','iosUrl','shareUrl'].map(field=>body(field).isString().trim().isLength({max:2048}).bail().custom(value=>!value||/^https?:\/\/\S+$/i.test(value)).withMessage('Enter a valid http or https URL.')),
+  body('banners').isArray({max:20}).withMessage('Add no more than 20 banners.'),
+  body('banners.*').isString().trim().isLength({min:1,max:2048}).bail().custom(value=>/^https?:\/\/\S+$/i.test(value)).withMessage('Each banner must be a valid http or https URL.')
+]),catalog.updateConfig);
 router.get('/onboarding',catalog.onboarding);
 router.get('/support',catalog.support);
 router.get('/share',catalog.share);
@@ -49,6 +58,7 @@ router.patch('/profile',validate([
   body('notificationsEnabled').optional().isBoolean(),
   body('address').optional().isObject()
 ]),account.updateProfile);
+router.patch('/profile/picture',upload.fields([{name:'profileImage',maxCount:1},{name:'profilePic',maxCount:1}]),account.updateProfilePicture);
 router.patch('/preferences',validate([
   body('preferredLanguage').optional().isIn(['en','hi']),
   body('notificationsEnabled').optional().isBoolean()

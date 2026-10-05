@@ -148,11 +148,17 @@ exports.report=handle(async(req,res)=>{
   res.status(201).json({success:true,message:'Problem reported.',data:{id:doc._id,status:doc.status}});
 });
 exports.notifications=handle(async(req,res)=>{
-  const filter={audience:{$in:visibleAudiences(req.user.type)}};
+  const filter={$or:[
+    {recipient:req.user._id},
+    {recipient:{$exists:false},recipientRole:{$exists:false},audience:{$in:visibleAudiences(req.user.type)}}
+  ]};
   await list(Notification,filter,req,res,{createdAt:-1},null,n=>({id:n._id,title:text(req,n.title,n.titleHindi),body:text(req,n.body,n.bodyHindi),type:n.type,link:n.link||null,isRead:Array.isArray(n.readBy)&&n.readBy.some(id=>String(id)===String(req.user._id)),createdAt:n.createdAt}));
 });
 exports.readNotification=handle(async(req,res)=>{
-  const doc=await Notification.findOneAndUpdate({_id:req.params.id,audience:{$in:visibleAudiences(req.user.type)}},{$addToSet:{readBy:req.user._id}},{new:true});
+  const doc=await Notification.findOneAndUpdate({_id:req.params.id,$or:[
+    {recipient:req.user._id},
+    {recipient:{$exists:false},recipientRole:{$exists:false},audience:{$in:visibleAudiences(req.user.type)}}
+  ]},{$addToSet:{readBy:req.user._id}},{new:true});
   if(!doc)throw fail(404,'Notification not found.');
   res.json({success:true,data:{id:doc._id,isRead:true}});
 });

@@ -54,7 +54,7 @@ connectDB();
 
 app.use(cors());
 
-app.use(express.json({limit: '10mb'})); // Increase limit for file uploads
+app.use(express.json({limit: '25mb'})); // Allow large bilingual question imports.
 app.use(express.urlencoded({ extended: true }));
 app.use(requestLogger);
 

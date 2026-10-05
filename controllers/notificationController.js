@@ -3,6 +3,10 @@ const DeviceToken = require('../models/DeviceToken');
 const { pushNotification } = require('../services/firebaseNotificationService');
 const { visibleAudiences } = require('../utils/notificationAudience');
 
+const visibleTo = user => user.role === 'admin'
+  ? { $or: [{ recipientRole: 'admin' }, { recipient: user._id }, { recipient: { $exists: false }, recipientRole: { $exists: false } }] }
+  : { $or: [{ recipient: user._id }, { recipient: { $exists: false }, recipientRole: { $exists: false }, audience: { $in: visibleAudiences(user.type) } }] };
+
 exports.createNotification = async (req, res) => {
   try {
     const { title, body, titleHindi = '', bodyHindi = '', type = 'general', audience = 'all', link = '' } = req.body;
@@ -15,13 +19,13 @@ exports.createNotification = async (req, res) => {
 
 exports.getMyNotifications = async (req, res) => {
   try {
-    const data = await Notification.find(req.user.role === 'admin' ? {} : { audience: { $in: visibleAudiences(req.user.type) } }).sort({ createdAt: -1 }).limit(50).lean();
+    const data = await Notification.find(visibleTo(req.user)).sort({ createdAt: -1 }).limit(50).lean();
     res.json({ success: true, data: data.map(item => ({ ...item, isRead: item.readBy.some(id => id.toString() === req.user._id.toString()) })) });
   } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 };
 
 exports.markRead = async (req, res) => {
-  await Notification.findOneAndUpdate({ _id: req.params.id, ...(req.user.role === 'admin' ? {} : { audience: { $in: visibleAudiences(req.user.type) } }) }, { $addToSet: { readBy: req.user._id } });
+  await Notification.findOneAndUpdate({ _id: req.params.id, ...visibleTo(req.user) }, { $addToSet: { readBy: req.user._id } });
   res.json({ success: true });
 };
 

@@ -8,6 +8,8 @@ const notificationSchema = new mongoose.Schema({
   type: { type: String, enum: ['news', 'test_series', 'live_test', 'general'], default: 'general' },
   audience: { type: String, enum: ['all', 'fresh', 'pre', 'mains', 'combo'], default: 'all' },
   link: { type: String, default: '' },
+  recipient: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  recipientRole: { type: String, enum: ['admin', 'student'] },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
 }, { timestamps: true });

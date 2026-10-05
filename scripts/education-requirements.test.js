@@ -148,6 +148,41 @@ test('DOCX uploads are converted into the same question schema as CSV files', as
     mammoth.extractRawText = originalExtract;
   }
 });
+
+test('DOCX parser accepts 1000 English and Hindi numbered questions', async () => {
+  const mammoth = require('mammoth');
+  const originalExtract = mammoth.extractRawText;
+  const createDocument = prefix => Array.from({ length: 1000 }, (_, index) =>
+    `${index + 1}. ${prefix} question ${index + 1}\nA) Option A ${index + 1}\nB) Option B ${index + 1}\nC) Option C ${index + 1}\nD) Option D ${index + 1}\nAnswer: A`
+  ).join('\n\n');
+
+  try {
+    mammoth.extractRawText = async ({ buffer }) => ({
+      value: buffer.toString() === 'hindi'
+        ? createDocument('हिंदी')
+        : createDocument('English')
+    });
+
+    const english = await parseQuestionImportFile(Buffer.from('english'), 'EnglishQuestions.docx');
+    const hindi = await parseQuestionImportFile(Buffer.from('hindi'), 'HindiQuestions.docx');
+    assert.equal(english.length, 1000);
+    assert.equal(hindi.length, 1000);
+    validateQuestions(english);
+    validateQuestions(hindi);
+
+    const { mergeBilingualQuestions } = require('../controllers/questionImportController');
+    const bilingual = mergeBilingualQuestions(
+      [{ originalname: 'EnglishQuestions.docx' }, { originalname: 'HindiQuestions.docx' }],
+      [english, hindi]
+    );
+    assert.equal(bilingual.length, 1000);
+    assert.equal(bilingual[999].question.english, 'English question 1000');
+    assert.equal(bilingual[999].question.hindi, 'हिंदी question 1000');
+    validateQuestions(bilingual);
+  } finally {
+    mammoth.extractRawText = originalExtract;
+  }
+});
 test('web and app login accept the same student email regardless of case, and mobile number', () => {
   const { loginQuery } = require('../utils/loginAccount');
   const byEmail = loginQuery('  App.User@Email.COM ');
@@ -156,4 +191,3 @@ test('web and app login accept the same student email regardless of case, and mo
   assert.ok(byPhone.$or.some(item => item.phone === '9415778282'));
   assert.ok(byPhone.$or.some(item => item.phone === '+919415778282'));
 });
-

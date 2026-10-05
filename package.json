@@ -11,7 +11,7 @@
     "@aws-sdk/client-s3": "^3.1048.0",
     "@aws-sdk/s3-request-presigner": "^3.1048.0",
     "@pdf-lib/standard-fonts": "^1.0.0",
-    "aws-sdk": "^2.1693.0",
+    "aws-sdk": "^1.18.0",
     "bcryptjs": "^2.4.3",
     "cheerio": "^1.1.2",
     "cors": "^2.8.6",
@@ -34,6 +34,6 @@
     "uuid": "^13.0.2"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "nodemon": "^1.14.10"
   }
 }

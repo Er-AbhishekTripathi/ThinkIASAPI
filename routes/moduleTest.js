@@ -26,6 +26,7 @@ const { auth, adminAuth } = require('../middleware/auth');
 const { apiLimiter } = require('../middleware/rateLimiter');
 
 // ============ PUBLIC ROUTES (No Auth Required) ============
+router.get('/admin/module/:moduleId/tests', auth, adminAuth, getModuleTestsByModule);
 // Get module tests for public view (for students)
 router.get('/module/:moduleId/tests', getModuleTestsByModule);
 // Get module test for public view

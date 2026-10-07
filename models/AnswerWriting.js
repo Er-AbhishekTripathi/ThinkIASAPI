@@ -69,6 +69,14 @@ const answerWritingSchema = new mongoose.Schema({
       type: String,
       default: ''
     },
+    releaseStartAt: {
+      type: Date,
+      default: null
+    },
+    releaseEndAt: {
+      type: Date,
+      default: null
+    },
     isActive: {
       type: Boolean,
       default: true

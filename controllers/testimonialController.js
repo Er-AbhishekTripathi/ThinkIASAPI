@@ -82,7 +82,7 @@ const createTestimonial = async (req, res) => {
 const getTestimonials = async (req, res) => {
   try {
     const isPublicRequest = req.route?.path === '/public';
-    const testimonials = await Testimonial.find(isPublicRequest ? { isActive: true } : {})
+    const testimonials = await Testimonial.find(isPublicRequest ? { isActive: { $ne: false } } : {})
       .sort({ createdAt: -1 });
 
     if (isPublicRequest) res.set('Cache-Control', 'no-store');

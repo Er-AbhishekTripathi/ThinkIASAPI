@@ -138,8 +138,8 @@ const getAllAnswerWritingAdmin = async (req, res) => {
     }
 
     const exercises = await AnswerWriting.find(query)
-      .populate('createdBy', 'fullName email profileImage')
-      .populate('updatedBy', 'fullName email profileImage')
+      .populate('createdBy', 'fullName email')
+      .populate('updatedBy', 'fullName email')
       .sort({ order: -1, createdAt: -1 });
 
     const data = exercises.map(ex => getBilingualContent(ex, lang));
@@ -583,7 +583,7 @@ const getExerciseSubmissions = async (req, res) => {
     const { getPresignedUrl } = require('../config/r2');
 
     const submissions = await StudentAnswerSubmission.find({ answerWritingId: id })
-      .populate('studentId', 'fullName email phone profileImage')
+      .populate('studentId', 'fullName email phone')
       .sort({ submittedAt: -1 });
 
     // Generate presigned URLs for each submission
@@ -664,7 +664,7 @@ const submitEvaluation = async (req, res) => {
     await submission.save();
 
     // Populate student info for response
-    await submission.populate('studentId', 'fullName email profileImage');
+    await submission.populate('studentId', 'fullName email');
 
     res.json({
       success: true,
@@ -692,7 +692,7 @@ const getEvaluationStatus = async (req, res) => {
     const { submissionId } = req.params;
 
     const submission = await StudentAnswerSubmission.findById(submissionId)
-      .populate('studentId', 'fullName email profileImage');
+      .populate('studentId', 'fullName email');
 
     if (!submission) {
       return res.status(404).json({
@@ -737,7 +737,7 @@ const getExerciseEvaluations = async (req, res) => {
     const { exerciseId } = req.params;
 
     const submissions = await StudentAnswerSubmission.find({ answerWritingId: exerciseId })
-      .populate('studentId', 'fullName email phone profileImage')
+      .populate('studentId', 'fullName email phone')
       .sort({ submittedAt: -1 });
 
     const evaluationData = submissions.map(submission => {
@@ -865,7 +865,7 @@ const bulkSubmitEvaluations = async (req, res) => {
 const updateModelAnswer = async (req, res) => {
   try {
     const { id } = req.params;
-    const { remark, answerEnglish, answerHindi, modelAnswerPDF, modelAnswerPDFHi, isActive } = req.body;
+    const { remark, answerEnglish, answerHindi, modelAnswerPDF, modelAnswerPDFHi, releaseStartAt, releaseEndAt, isActive } = req.body;
 
     const exercise = await AnswerWriting.findById(id);
     if (!exercise) {
@@ -882,6 +882,24 @@ const updateModelAnswer = async (req, res) => {
     if (modelAnswerPDF !== undefined) exercise.modelAnswer.modelAnswerPDF = modelAnswerPDF;
     if (modelAnswerPDFHi !== undefined) exercise.modelAnswer.modelAnswerPDFHi = modelAnswerPDFHi;
     if (isActive !== undefined) exercise.modelAnswer.isActive = isActive;
+    if (releaseStartAt !== undefined || releaseEndAt !== undefined) {
+      if (!releaseStartAt || !releaseEndAt) {
+        return res.status(400).json({
+          success: false,
+          message: 'Both model answer release dates are required.'
+        });
+      }
+      const releaseStart = new Date(releaseStartAt);
+      const releaseEnd = new Date(releaseEndAt);
+      if (Number.isNaN(releaseStart.getTime()) || Number.isNaN(releaseEnd.getTime()) || releaseStart >= releaseEnd) {
+        return res.status(400).json({
+          success: false,
+          message: 'Model answer end date must be after its start date.'
+        });
+      }
+      exercise.modelAnswer.releaseStartAt = releaseStart;
+      exercise.modelAnswer.releaseEndAt = releaseEnd;
+    }
     
     exercise.modelAnswer.updatedAt = new Date();
     exercise.modelAnswer.updatedBy = req.user._id;
@@ -909,7 +927,7 @@ const getModelAnswer = async (req, res) => {
     const { id } = req.params;
 
     const exercise = await AnswerWriting.findById(id)
-      .populate('modelAnswer.updatedBy', 'fullName email profileImage');
+      .populate('modelAnswer.updatedBy', 'fullName email');
 
     if (!exercise) {
       return res.status(404).json({
@@ -926,6 +944,8 @@ const getModelAnswer = async (req, res) => {
         answerHindi: exercise.modelAnswer.answerHindi || '',
         modelAnswerPDF: exercise.modelAnswer.modelAnswerPDF || '',
         modelAnswerPDFHi: exercise.modelAnswer.modelAnswerPDFHi || '',
+        releaseStartAt: exercise.modelAnswer.releaseStartAt || null,
+        releaseEndAt: exercise.modelAnswer.releaseEndAt || null,
         isActive: exercise.modelAnswer.isActive !== undefined ? exercise.modelAnswer.isActive : true,
         updatedAt: exercise.modelAnswer.updatedAt,
         updatedBy: exercise.modelAnswer.updatedBy
@@ -995,6 +1015,16 @@ const updateModelAnswerField = async (req, res) => {
 // @desc    Get student's submission with evaluation for a specific exercise
 // @route   GET /api/answer-writing/:exerciseId/my-evaluation
 // @access  Private (Student)
+const isModelAnswerAvailable = (modelAnswer, now = new Date()) => {
+  if (!modelAnswer || !modelAnswer.isActive) return false;
+  const start = modelAnswer.releaseStartAt ? new Date(modelAnswer.releaseStartAt) : null;
+  const end = modelAnswer.releaseEndAt ? new Date(modelAnswer.releaseEndAt) : null;
+
+  // Model answers without a configured window retain the existing publish behavior.
+  if (!start && !end) return true;
+  return !!start && !!end && now >= start && now <= end;
+};
+
 const getMyEvaluation = async (req, res) => {
   try {
     const { exerciseId } = req.params;
@@ -1050,12 +1080,14 @@ const getMyEvaluation = async (req, res) => {
           evaluation: answer.evaluation || null
         }))
       },
-      modelAnswer: exercise.modelAnswer && exercise.modelAnswer.isActive ? {
+      modelAnswer: isModelAnswerAvailable(exercise.modelAnswer) ? {
         remark: exercise.modelAnswer.remark || '',
         answerEnglish: exercise.modelAnswer.answerEnglish || '',
         answerHindi: exercise.modelAnswer.answerHindi || '',
         modelAnswerPDF: exercise.modelAnswer.modelAnswerPDF || '',
         modelAnswerPDFHi: exercise.modelAnswer.modelAnswerPDFHi || '',
+        releaseStartAt: exercise.modelAnswer.releaseStartAt || null,
+        releaseEndAt: exercise.modelAnswer.releaseEndAt || null,
         isActive: exercise.modelAnswer.isActive
       } : null
     };
@@ -1106,12 +1138,14 @@ const getMyEvaluations = async (req, res) => {
         .filter(a => a.isEvaluated);
 
       // Get model answer if active
-      const modelAnswer = exercise.modelAnswer && exercise.modelAnswer.isActive ? {
+      const modelAnswer = isModelAnswerAvailable(exercise.modelAnswer) ? {
         remark: exercise.modelAnswer.remark || '',
         answerEnglish: exercise.modelAnswer.answerEnglish || '',
         answerHindi: exercise.modelAnswer.answerHindi || '',
         modelAnswerPDF: exercise.modelAnswer.modelAnswerPDF || '',
         modelAnswerPDFHi: exercise.modelAnswer.modelAnswerPDFHi || '',
+        releaseStartAt: exercise.modelAnswer.releaseStartAt || null,
+        releaseEndAt: exercise.modelAnswer.releaseEndAt || null,
         isActive: exercise.modelAnswer.isActive
       } : null;
 

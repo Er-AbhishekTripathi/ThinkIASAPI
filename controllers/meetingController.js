@@ -239,7 +239,7 @@ const getStudentMeetings = async (req, res) => {
       if (audience === 'pre') filter.audience = 'pre';
     }
     const meetings = await Meeting.find(filter)
-      .populate('createdBy', 'name email profileImage')
+      .populate('createdBy', 'name email')
       .sort({ meetingDate: 1 });
 
     // Separate into upcoming and completed based on current time

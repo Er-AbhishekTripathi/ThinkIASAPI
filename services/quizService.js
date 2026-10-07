@@ -36,9 +36,6 @@ class QuizService {
     const quiz = await Quiz.findById(quizId);
     
     if (!quiz) throw new Error('Quiz not found');
-    if (!quiz.isActive && !req.user?.role === 'admin') {
-      throw new Error('Quiz is not active');
-    }
     
     // Get questions for this quiz
     const questions = await Question.find({ 

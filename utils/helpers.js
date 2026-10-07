@@ -53,7 +53,7 @@ const getMenuItems = (user) => {
           { name: 'Testimonials', path: '/testimonials', icon: 'format_quote' },
           { name: 'Plan Benefits', path: '/support-features', icon: 'support_agent' },
           { name: 'Manage Plans', path: '/manage-plans', icon: 'payments' },
-          //{ name: 'Careers', path: '/careers', icon: 'work' },
+          { name: 'Careers', path: '/careers', icon: 'work' },
           { name: 'Website Quiz', path: '/quizzes', icon: 'fact_check' },
           { name: 'Simple News', path: '/simple-news-admin', icon: 'newspaper' },
           { name: 'Manage Program', path: '/manage-program', icon: 'fact_check' },

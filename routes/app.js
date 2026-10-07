@@ -6,14 +6,30 @@ const account=require('../controllers/appAccountController');
 const {auth}=require('../middleware/auth');
 const {apiLimiter}=require('../middleware/rateLimiter');
 
+const {profileImageUpload}=require('../config/r2');
 const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:2*1024*1024}});
+const imageUpload=(req,res,next)=>profileImageUpload(req,res,err=>{
+  if(err)return res.status(400).json({success:false,message:err.code==='LIMIT_FILE_SIZE'?'Image must be 5 MB or smaller.':(err.message||'Upload a JPEG, PNG, WebP or GIF image.')});
+  next();
+});
+const acceptProfileImage=(req,res,next)=>{
+  const type=req.headers['content-type']||'';
+  if(!type.includes('multipart/form-data'))return next();
+  imageUpload(req,res,()=>{
+    if(res.headersSent)return;
+    if(typeof req.body.address==='string'){try{req.body.address=JSON.parse(req.body.address);}catch(_){}}
+    if(req.body.notificationsEnabled==='true')req.body.notificationsEnabled=true;
+    if(req.body.notificationsEnabled==='false')req.body.notificationsEnabled=false;
+    next();
+  });
+};
 const validate=rules=>[...rules,(req,res,next)=>{
   const errors=validationResult(req);
   if(!errors.isEmpty())return res.status(400).json({success:false,message:'Please check the entered details.',errors:errors.array().map(e=>({field:e.path,message:e.msg}))});
   next();
 }];
 const student=(req,res,next)=>{
-  if(!req.appSession||req.user.role!=='student')return res.status(401).json({success:false,message:'Please log in through the app.'});
+  if(!req.user||req.user.role!=='student')return res.status(401).json({success:false,message:'Please log in as a student.'});
   next();
 };
 const mongoId=field=>param(field).isMongoId().withMessage('A valid id is required.');
@@ -40,14 +56,24 @@ router.get('/testimonials',catalog.testimonials);
 router.use(auth,student,apiLimiter);
 router.get('/dashboard',catalog.dashboard);
 router.get('/profile',account.profile);
-router.patch('/profile',validate([
-  body('fullName').optional().isString().bail().trim().isLength({min:2,max:100}),
-  body('phone').optional().isString().bail().trim().matches(/^\+?[0-9]{10,15}$/).withMessage('Enter a valid mobile number.'),
-  body('password').optional().isString().bail().isLength({min:6}).withMessage('Password must have at least 6 characters.'),
-  body('confirmPassword').if(body('password').exists()).isString().bail().custom((value,{req})=>value===req.body.password).withMessage('Passwords do not match.'),
-  body('preferredLanguage').optional().isIn(['en','hi']),
+router.post('/profile/image',imageUpload,account.updateProfileImage);
+router.delete('/profile/image',account.deleteProfileImage);
+router.patch('/profile',acceptProfileImage,validate([
+  body('fullName').optional({values:'falsy'}).isString().bail().trim().isLength({min:2,max:100}),
+  body('name').optional({values:'falsy'}).isString().bail().trim().isLength({min:2,max:100}),
+  body('phone').optional({values:'falsy'}).isString().bail().trim().matches(/^\+?[0-9]{10,15}$/).withMessage('Enter a valid mobile number.'),
+  body('mobileNo').optional({values:'falsy'}).isString().bail().trim().matches(/^\+?[0-9]{10,15}$/).withMessage('Enter a valid mobile number.'),
+  body('email').optional({values:'falsy'}).isEmail().withMessage('Enter a valid email address.'),
+  body('password').optional({values:'falsy'}).isString().bail().isLength({min:6}).withMessage('Password must have at least 6 characters.'),
+  body('confirmPassword').optional({values:'falsy'}).isString(),
+  body('preferredLanguage').optional({values:'falsy'}).isIn(['en','hi']),
   body('notificationsEnabled').optional().isBoolean(),
-  body('address').optional().isObject()
+  body('address').optional().isObject(),
+  body('pincode').optional().isString(),
+  body('houseNo').optional().isString(),
+  body('locality').optional().isString(),
+  body('colony').optional().isString(),
+  body('city').optional().isString()
 ]),account.updateProfile);
 router.patch('/preferences',validate([
   body('preferredLanguage').optional().isIn(['en','hi']),

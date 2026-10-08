@@ -33,7 +33,7 @@ class TestService {
     const query = Test.findById(testId);
     
     if (options.populateCreator) {
-      query.populate('createdBy', 'fullName email profileImage');
+      query.populate('createdBy', 'fullName email');
     }
     
     if (options.populateQuestions) {
@@ -161,11 +161,8 @@ class TestService {
       .sort({ createdAt: -1 });
   }
 
-  static async getAllTestsForAdmin(seriesKind) {
-    const filter = seriesKind
-      ? { seriesKind, isDeleted: { $ne: true } }
-      : { isActive: true, seriesId: { $in: [null, undefined] } };
-    return await Test.find(filter)
+  static async getAllActiveTests() {
+    return await Test.find({ isActive: true, seriesId: { $in: [null, undefined] } })
       .populate({
         path: 'questions',
         select: '_id question.english uid',
@@ -184,7 +181,7 @@ class TestService {
           select: 'tag'
         }
       })
-      .populate('createdBy', 'fullName email profileImage')
+      .populate('createdBy', 'fullName email')
       .exec();
   }
 }

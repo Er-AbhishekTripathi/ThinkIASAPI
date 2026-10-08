@@ -45,7 +45,6 @@ const userSchema = new mongoose.Schema({
   address: {pincode:String,houseNo:String,locality:String,colony:String,city:String},
   preferredLanguage: {type:String,enum:['en','hi'],default:'en'},
   notificationsEnabled: {type:Boolean,default:true},
-  profileImage: { type: String, default: null },
   deletedAt: Date,
   deletionReason: String,
   isActive: { type: Boolean, default: true },

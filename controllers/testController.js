@@ -11,8 +11,7 @@ const getTests = async (req, res) => {
     let tests;
     
     if (req.user.role === 'admin') {
-      const seriesKind = ['pre', 'mains'].includes(req.query.seriesKind) ? req.query.seriesKind : undefined;
-      tests = await TestService.getAllTestsForAdmin(seriesKind);
+      tests = await TestService.getAllActiveTests();
     } else {
       if (!canAccessPlan(req.user.type, 'pre')) {
         return res.status(403).json({ success: false, message: 'An active Prelims plan is required.' });

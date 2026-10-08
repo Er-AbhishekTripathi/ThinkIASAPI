@@ -30,7 +30,7 @@ class AnalyticsService {
     
     if (!test) throw new Error('Test not found');
 
-    const results = await Result.find({ test: testId }).populate('student', 'fullName email profileImage');
+    const results = await Result.find({ test: testId }).populate('student', 'fullName email');
     const totalStudents = results.length;
     
     const scores = results.map(r => r.score);
@@ -83,20 +83,20 @@ class AnalyticsService {
   }
 
   static async getPlatformStatistics() {
-    const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const [totalTests, prelimsTests, mainsTests, totalStudents, resultCounts, totalQuestions, newSupportRequests, openSupportRequests, quizAttempts, recentQuizAttempts, demoAttempts, recentDemoAttempts] = await Promise.all([
+    const since24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const [totalTests, totalStudents, resultCounts, prelimsTests, mainsTests, totalQuestions, newSupportRequests, openSupportRequests, quizAttempts, recentQuizAttempts, demoAttempts, recentDemoAttempts] = await Promise.all([
       Test.countDocuments({ isDeleted: { $ne: true } }),
-      Test.countDocuments({ isDeleted: { $ne: true }, seriesKind: 'pre' }),
-      Test.countDocuments({ isDeleted: { $ne: true }, seriesKind: 'mains' }),
       User.countDocuments({ role: 'student' }),
       Result.aggregate([...withExistingTest(), { $count: 'count' }]),
-      Question.countDocuments(),
-      SupportTicket.countDocuments({ createdAt: { $gte: last24Hours } }),
+      Test.countDocuments({ isDeleted: { $ne: true }, seriesKind: 'pre' }),
+      Test.countDocuments({ isDeleted: { $ne: true }, seriesKind: 'mains' }),
+      Question.countDocuments({}),
+      SupportTicket.countDocuments({ createdAt: { $gte: since24Hours } }),
       SupportTicket.countDocuments({ status: { $in: ['open', 'in_progress'] } }),
-      QuizSubmission.countDocuments(),
-      QuizSubmission.countDocuments({ submittedAt: { $gte: last24Hours } }),
-      DemoResult.countDocuments(),
-      DemoResult.countDocuments({ submittedAt: { $gte: last24Hours } })
+      QuizSubmission.countDocuments({}),
+      QuizSubmission.countDocuments({ submittedAt: { $gte: since24Hours } }),
+      DemoResult.countDocuments({}),
+      DemoResult.countDocuments({ submittedAt: { $gte: since24Hours } })
     ]);
     const totalResults = resultCounts[0]?.count || 0;
 
@@ -137,10 +137,10 @@ class AnalyticsService {
 
     return {
       totalTests,
-      prelimsTests,
-      mainsTests,
       totalStudents,
       totalResults,
+      prelimsTests,
+      mainsTests,
       totalQuestions,
       newSupportRequests,
       openSupportRequests,

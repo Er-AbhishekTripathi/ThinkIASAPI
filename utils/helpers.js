@@ -35,7 +35,7 @@ const getMenuItems = (user) => {
           { name: 'Question Bank', path: '/questions-master', icon: 'quiz' }     
         ]
       },
-      
+      { name: 'Pre Resources Directory', path: '/directory-master', icon: 'library_books' },
      
      
       
@@ -55,7 +55,7 @@ const getMenuItems = (user) => {
           { name: 'Manage Exams', path: '/manage-exams', icon: 'school' },
           { name: 'App Settings', path: '/app-settings', icon: 'phone_android' },
           { name: 'Manage Plans', path: '/manage-plans', icon: 'payments' },
-          //{ name: 'Careers', path: '/careers', icon: 'work' },
+          { name: 'Careers', path: '/careers', icon: 'work' },
           { name: 'Website Quiz', path: '/quizzes', icon: 'fact_check' },
           { name: 'Simple News', path: '/simple-news-admin', icon: 'newspaper' },
           { name: 'Manage Program', path: '/manage-program', icon: 'fact_check' },
@@ -71,8 +71,7 @@ const getMenuItems = (user) => {
         icon: 'quiz',
         children: [
           { name: 'Prelims Test Series', path: '/prelims-test-series', icon: 'description' },
-           { name: 'Prelims Meeting', path: '/meeting-admin', icon: 'groups' },
-           { name: 'Pre Resources Directory', path: '/directory-master', icon: 'library_books' }
+           { name: 'Prelims Meeting', path: '/meeting-admin', icon: 'groups' }
         ]
       },
       {
@@ -83,7 +82,7 @@ const getMenuItems = (user) => {
            { name: 'Mains Test Series', path: '/mains-test-series', icon: 'description' },
            { name: 'Manage Answer Writing', path: '/answer-writing', icon: 'fact_check' },
            { name: 'Mains Meeting', path: '/mains-meeting-admin', icon: 'groups' },
-           { name: 'Mains Resources Directory', path: '/mains-directory-master', icon: 'library_books' }
+           { name: 'Mains Resources Directory', path: '/directory-master', icon: 'library_books' },
           ]
       },
      
@@ -94,7 +93,11 @@ const getMenuItems = (user) => {
       { name: 'Manage Coupon', path: '/manage-coupon', icon: 'fact_check' },
       { name: 'Study Module', path: '/study-module', icon: 'fact_check' },
 
-     
+      { name: 'Manage Program', path: '/manage-program', icon: 'fact_check' },
+      { name: 'Manage Answer Writing', path: '/answer-writing', icon: 'fact_check' },
+      { name: 'Mains Resources Directory', path: '/mains-directory-master', icon: 'library_books' },
+
+      
       
       { name: 'Live Tests', path: '/live-test', icon: 'description' },
      

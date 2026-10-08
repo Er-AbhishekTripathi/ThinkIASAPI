@@ -261,8 +261,8 @@ const updateBatch = async (req, res) => {
       req.params.id,
       updates,
       { new: true, runValidators: true }
-    ).populate('createdBy', 'fullName email profileImage')
-     .populate('updatedBy', 'fullName email profileImage');
+    ).populate('createdBy', 'fullName email')
+     .populate('updatedBy', 'fullName email');
 
     res.json({
       success: true,

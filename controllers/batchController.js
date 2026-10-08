@@ -107,8 +107,8 @@ const getAllBatchesAdmin = async (req, res) => {
     }
 
     const batches = await Batch.find(query)
-      .populate('createdBy', 'fullName email')
-      .populate('updatedBy', 'fullName email')
+      .populate('createdBy', 'fullName email profileImage')
+      .populate('updatedBy', 'fullName email profileImage')
       .populate('programId', 'programName examination examId')
       .populate('examId', 'name code')
       .sort({ order: -1, startDate: 1 });
@@ -261,8 +261,8 @@ const updateBatch = async (req, res) => {
       req.params.id,
       updates,
       { new: true, runValidators: true }
-    ).populate('createdBy', 'fullName email')
-     .populate('updatedBy', 'fullName email');
+    ).populate('createdBy', 'fullName email profileImage')
+     .populate('updatedBy', 'fullName email profileImage');
 
     res.json({
       success: true,

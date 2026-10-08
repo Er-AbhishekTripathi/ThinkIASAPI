@@ -23,12 +23,7 @@ const handle = fn => async (req, res) => {
     res.status(status).json({success:false, message:err.code === 11000 ? 'This email is already registered. Please log in.' : status === 500 ? 'Unable to complete the request. Please try again.' : err.message, ...(typeof err.code === 'string' ? {code:err.code} : {})});
   }
 };
-const publicUser = (user,req) => profile(user,req);
-async function fullUser(user){
-  const query=User.findById(user._id);
-  if(!query||typeof query.populate!=='function')return user;
-  return await query.select('-password').populate('programId','programName programNameHindi displayImage').populate('batchId','batchName batchNameHindi')||user;
-}
+const publicUser = user => ({_id:user._id,fullName:user.fullName,email:user.email,phone:user.phone,profileImage:user.profileImage||null,role:user.role,type:user.type,isActive:user.isActive !== false,emailVerified:!!user.emailVerifiedAt});
 const available = (email, purpose) => ({email,purpose,expiresAt:{$gt:new Date()},consumedAt:{$exists:false}});
 function challengeResponse(res, challenge) {
   res.json({success:true,message:'Test OTP ready. Use 1234; no email is sent.',data:{challengeId:challenge._id,email:challenge.email,purpose:challenge.purpose,expiresAt:challenge.expiresAt,resendAfterSeconds:RESEND_SECONDS,otpLength:4,testMode:true}});

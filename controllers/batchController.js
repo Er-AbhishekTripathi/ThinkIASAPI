@@ -1,6 +1,9 @@
 const Batch = require('../models/Batch');
 const Program = require('../models/Program');
+const Plan = require('../models/Plan');
 const { handleError } = require('../middleware/errorHandler');
+
+const resolveExamId = (program) => program?.examId || null;
 
 // @desc    Create a new batch
 // @route   POST /api/programs/:programId/batches
@@ -16,6 +19,12 @@ const createBatch = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Program not found'
+      });
+    }
+    if (!program.examId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Map this program to an exam before creating batches.'
       });
     }
 
@@ -55,6 +64,7 @@ const createBatch = async (req, res) => {
     const batch = new Batch({
       batchNameHindi: req.body.batchNameHindi, durationHindi: req.body.durationHindi,
       programId,
+      examId: resolveExamId(program),
       batchName,
       startDate: start,
       endDate: end,
@@ -99,6 +109,8 @@ const getAllBatchesAdmin = async (req, res) => {
     const batches = await Batch.find(query)
       .populate('createdBy', 'fullName email')
       .populate('updatedBy', 'fullName email')
+      .populate('programId', 'programName examination examId')
+      .populate('examId', 'name code')
       .sort({ order: -1, startDate: 1 });
 
     res.json({
@@ -323,9 +335,49 @@ const toggleBatchStatus = async (req, res) => {
   }
 };
 
+const listCatalogBatches = async (req, res) => {
+  try {
+    const { examId, programId, planId, status } = req.query;
+    const query = {};
+
+    if (programId) query.programId = programId;
+    if (status === 'active') query.isActive = true;
+    if (status === 'inactive') query.isActive = false;
+
+    if (planId) {
+      const planFilter = [{ id: String(planId).toLowerCase() }];
+      if (require('mongoose').Types.ObjectId.isValid(planId)) planFilter.push({ _id: planId });
+      const plan = await Plan.findOne({ $or: planFilter, isDeleted: { $ne: true } }).lean();
+      const ids = (plan?.programIds || []).map((id) => id);
+      query.programId = programId ? programId : { $in: ids };
+    }
+
+    if (examId) {
+      const programs = await Program.find({ examId }).select('_id').lean();
+      const programIds = programs.map((item) => item._id);
+      if (query.programId && typeof query.programId === 'object' && query.programId.$in) {
+        const allowed = new Set(query.programId.$in.map((id) => id.toString()));
+        query.programId = { $in: programIds.filter((id) => allowed.has(id.toString())) };
+      } else if (!query.programId) {
+        query.$or = [{ examId }, { programId: { $in: programIds } }];
+      }
+    }
+
+    const batches = await Batch.find(query)
+      .populate('programId', 'programName examination examId')
+      .populate('examId', 'name code')
+      .sort({ order: -1, startDate: 1 });
+
+    res.json({ success: true, count: batches.length, data: batches });
+  } catch (error) {
+    handleError(res, error, 'Failed to fetch batches');
+  }
+};
+
 module.exports = {
   createBatch,
   getAllBatchesAdmin,
+  listCatalogBatches,
   getActiveBatches,
   getBatchById,
   updateBatch,

@@ -17,7 +17,9 @@ const planSchema = new mongoose.Schema({
   features: [{ type: String, trim: true }],
   displayOrder: { type: Number, default: 0, min: 0 },
   isActive: { type: Boolean, default: true },
-  isDeleted: { type: Boolean, default: false }
+  isDeleted: { type: Boolean, default: false },
+  examIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Exam' }],
+  programIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Program' }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('Plan', planSchema);

@@ -24,7 +24,10 @@ const ensurePlans = async () => {
 const getPlans = async (req, res) => {
   try {
     await ensurePlans();
-    const plans = await Plan.find({ isActive: true }).sort({ displayOrder: 1, createdAt: 1 }).select('-__v').lean();
+    const plans = await Plan.find({ isActive: true }).sort({ displayOrder: 1, createdAt: 1 }).select('-__v')
+      .populate('examIds', 'name nameHindi code')
+      .populate('programIds', 'programName programNameHindi examination examId')
+      .lean();
 
     res.json(plans);
   } catch (error) {
@@ -61,7 +64,10 @@ const getPlanDetails = async (req, res) => {
 const getAdminPlans = async (_req, res) => {
   try {
     await ensurePlans();
-    res.json({ success: true, data: await Plan.find({ isDeleted: { $ne: true } }).sort({ displayOrder: 1 }).select('-__v').lean() });
+    res.json({ success: true, data: await Plan.find({ isDeleted: { $ne: true } }).sort({ displayOrder: 1 }).select('-__v')
+      .populate('examIds', 'name nameHindi code')
+      .populate('programIds', 'programName programNameHindi examination examId year')
+      .lean() });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -71,7 +77,7 @@ const updatePlan = async (req, res) => {
   try {
     const id = String(req.params.id).toLowerCase();
     if (!/^[a-z0-9][a-z0-9-]{0,79}$/.test(id)) return res.status(400).json({ success: false, message: 'Invalid plan id' });
-    const allowed = ['accessType', 'nameHindi', 'subtitleHindi', 'badgeHindi', 'durationHindi', 'featuresHindi', 'name', 'subtitle', 'badge', 'baseAmount', 'totalAmount', 'duration', 'features', 'displayOrder', 'isActive'];
+    const allowed = ['accessType', 'nameHindi', 'subtitleHindi', 'badgeHindi', 'durationHindi', 'featuresHindi', 'name', 'subtitle', 'badge', 'baseAmount', 'totalAmount', 'duration', 'features', 'displayOrder', 'isActive', 'examIds', 'programIds'];
     const update = Object.fromEntries(allowed.filter(key => req.body[key] !== undefined).map(key => [key, req.body[key]]));
     update.id = id;
     const data = await Plan.findOneAndUpdate({ id, isDeleted: { $ne: true } }, update, { new: true, runValidators: true });
@@ -84,7 +90,7 @@ const updatePlan = async (req, res) => {
 
 const createPlan = async (req, res) => {
   try {
-    const fields = ['id', 'accessType', 'nameHindi', 'subtitleHindi', 'badgeHindi', 'durationHindi', 'featuresHindi', 'name', 'subtitle', 'badge', 'baseAmount', 'totalAmount', 'duration', 'features', 'displayOrder', 'isActive'];
+    const fields = ['id', 'accessType', 'nameHindi', 'subtitleHindi', 'badgeHindi', 'durationHindi', 'featuresHindi', 'name', 'subtitle', 'badge', 'baseAmount', 'totalAmount', 'duration', 'features', 'displayOrder', 'isActive', 'examIds', 'programIds'];
     if (!req.body.accessType) return res.status(400).json({ message: 'Select the plan access type.' });
     const input = Object.fromEntries(fields.filter(key => req.body[key] !== undefined).map(key => [key, req.body[key]]));
     if (!input.id) {
@@ -104,14 +110,17 @@ const deletePlan = async (req, res) => {
     const plan = await Plan.findOne({ id, isDeleted: { $ne: true } });
     if (!plan) return res.status(404).json({ success: false, message: 'Plan not found.' });
 
-    const programs = await Program.find({ accessType: plan.accessType }).select('_id').lean();
+    const mappedProgramIds = (plan.programIds || []).filter(Boolean);
+    const programs = mappedProgramIds.length
+      ? await Program.find({ _id: { $in: mappedProgramIds } }).select('_id').lean()
+      : await Program.find({ accessType: plan.accessType }).select('_id').lean();
     if (programs.length) {
       const batchesCount = await Batch.countDocuments({ programId: { $in: programs.map(program => program._id) } });
       return res.status(409).json({
         success: false,
         programsCount: programs.length,
         batchesCount,
-        message: `Cannot delete this plan: ${programs.length} program(s) and ${batchesCount} batch(es) use the ${plan.accessType} access type. First delete the batches, then the programs, and try deleting the plan again.`
+        message: `Cannot delete this plan: ${programs.length} program(s) and ${batchesCount} batch(es) are mapped to it. Unmap or delete those first.`
       });
     }
 

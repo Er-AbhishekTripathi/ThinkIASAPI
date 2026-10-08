@@ -8,6 +8,12 @@ const batchSchema = new mongoose.Schema({
     ref: 'Program',
     required: [true, 'Program ID is required']
   },
+  examId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Exam',
+    default: null,
+    index: true
+  },
   batchName: {
     type: String,
     required: [true, 'Batch name is required'],
@@ -88,5 +94,6 @@ batchSchema.pre('save', function(next) {
 // Indexes
 batchSchema.index({ programId: 1, order: 1 });
 batchSchema.index({ programId: 1, isActive: 1 });
+batchSchema.index({ examId: 1, isActive: 1 });
 
 module.exports = mongoose.model('Batch', batchSchema);

@@ -19,8 +19,12 @@ async function list(Model,filter,req,res,sort={createdAt:-1},select,mapper=x=>x)
 const regex=value=>String(value||'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 const text=(req,english,hindi)=>req.query.lang==='hi'?(hindi||english):english;
 const refId=value=>value&&value._id?value._id:value||null;
+const defaultProfileImage=()=>{
+  const base=(process.env.R2_PUBLIC_URL||'').replace(/\/$/,'');
+  return base?`${base}/profiles/default-profile.png`:null;
+};
 const profile=(u,req)=>{
-  const image=mediaUrl(u.profileImage,req);
+  const image=mediaUrl(u.profileImage,req)||defaultProfileImage();
   const address=u.address||{};
   const program=u.programId&&u.programId.programName?{id:u.programId._id,name:u.programId.programName,nameHindi:u.programId.programNameHindi||null,image:mediaUrl(u.programId.displayImage,req)}:null;
   const batch=u.batchId&&u.batchId.batchName?{id:u.batchId._id,name:u.batchId.batchName,nameHindi:u.batchId.batchNameHindi||null}:null;
@@ -31,7 +35,6 @@ const profile=(u,req)=>{
     email:u.email,
     phone:u.phone||'',
     image,
-    profileImage:image,
     role:u.role,
     type:u.type,
     isActive:u.isActive!==false,

@@ -72,6 +72,8 @@ app.use('/api/results', require('./routes/results'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/payments', require('./routes/payments'));
 app.use('/api/plans', require('./routes/plans'));
+app.use('/api/exams', require('./routes/exams'));
+app.use('/api/program-stages', require('./routes/programStages'));
 app.use('/api/prelims-ts', require('./routes/testSeries')('pre'));
 app.use('/api/mains-ts', require('./routes/testSeries')('mains'));
 app.use('/api/jobs', require('./routes/job'));

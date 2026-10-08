@@ -22,12 +22,18 @@ const programSchema = new mongoose.Schema({
   },
   examination: {
     type: String,
-    enum: ['UPSC', 'UPPSC', 'APSC', 'EPFO'],
+    trim: true,
     default: 'UPSC'
+  },
+  examId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Exam',
+    default: null,
+    index: true
   },
   programStage: {
     type: String,
-    enum: ['Prelims', 'Mains', 'Interview', 'Combo I', 'Combo II'],
+    trim: true,
     default: 'Prelims'
   },
   paperVariant: {

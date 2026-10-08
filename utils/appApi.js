@@ -35,6 +35,7 @@ const profile=(u,req)=>{
     email:u.email,
     phone:u.phone||'',
     image,
+    profileImage:image,
     role:u.role,
     type:u.type,
     isActive:u.isActive!==false,

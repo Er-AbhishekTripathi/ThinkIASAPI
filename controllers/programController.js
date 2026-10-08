@@ -1,5 +1,20 @@
 const Program = require('../models/Program');
 const Batch = require('../models/Batch');
+const Exam = require('../models/Exam');
+
+const applyExamMapping = async (payload) => {
+  const examId = payload.examId && payload.examId._id ? payload.examId._id : payload.examId;
+  if (!examId) return payload;
+  const exam = await Exam.findOne({ _id: examId, isDeleted: { $ne: true } });
+  if (!exam) {
+    const error = new Error('Mapped exam not found.');
+    error.statusCode = 400;
+    throw error;
+  }
+  payload.examId = exam._id;
+  payload.examination = exam.name;
+  return payload;
+};
 
 // @desc    Get all programs
 // @route   GET /api/programs
@@ -20,7 +35,9 @@ const getPrograms = async (req, res) => {
       query.year = year;
     }
 
-    if (examination) {
+    if (req.query.examId) {
+      query.examId = req.query.examId;
+    } else if (examination) {
       query.examination = examination;
     }
 
@@ -34,6 +51,7 @@ const getPrograms = async (req, res) => {
     }
     
     const programs = await Program.find(query)
+      .populate('examId', 'name nameHindi code')
       .sort({ order: 1, startDate: 1, createdAt: -1 });
     
     res.status(200).json({
@@ -56,7 +74,7 @@ const getPrograms = async (req, res) => {
 // @access  Public
 const getProgramById = async (req, res) => {
   try {
-    const program = await Program.findById(req.params.id);
+    const program = await Program.findById(req.params.id).populate('examId', 'name nameHindi code');
     
     if (!program) {
       return res.status(404).json({
@@ -146,12 +164,25 @@ const createProgram = async (req, res) => {
         message: 'Start date and end date are required'
       });
     }
+
+    if (!req.body.examId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Map this program to an exam.'
+      });
+    }
     
+    const mapped = await applyExamMapping({
+      examination: req.body.examination || 'UPSC',
+      examId: req.body.examId || null
+    });
+
     const program = await Program.create({
-      programNameHindi: req.body.programNameHindi, descriptionHindi: req.body.descriptionHindi, durationHindi: req.body.durationHindi, featuresHindi: req.body.featuresHindi,
+      programNameHindi: req.body.programNameHindi, descriptionHindi: req.body.descriptionHindi, durationHindi: req.body.durationHindi, featuresHindi: req.body.featuresHindi, displayImageHindi: req.body.displayImageHindi,
       programName,
       programCategory,
-      examination: req.body.examination || 'UPSC',
+      examination: mapped.examination,
+      examId: mapped.examId,
       programStage: req.body.programStage || 'Prelims',
       paperVariant: req.body.paperVariant || '',
       year,
@@ -173,6 +204,9 @@ const createProgram = async (req, res) => {
     });
   } catch (error) {
     console.error('Error in createProgram:', error);
+    if (error.statusCode === 400) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
     
     if (error.name === 'ValidationError') {
       const messages = Object.values(error.errors).map(err => err.message);
@@ -220,11 +254,18 @@ const updateProgram = async (req, res) => {
       });
     }
     
-    for (const field of ['programNameHindi', 'descriptionHindi', 'durationHindi', 'featuresHindi']) { if (req.body[field] !== undefined) program[field] = req.body[field]; }
+    for (const field of ['programNameHindi', 'descriptionHindi', 'durationHindi', 'featuresHindi', 'displayImageHindi']) { if (req.body[field] !== undefined) program[field] = req.body[field]; }
     // Update fields
     program.programName = programName || program.programName;
     program.programCategory = programCategory || program.programCategory;
-    if (req.body.examination) program.examination = req.body.examination;
+    if (req.body.examId !== undefined || req.body.examination) {
+      const mapped = await applyExamMapping({
+        examination: req.body.examination || program.examination,
+        examId: req.body.examId !== undefined ? req.body.examId : program.examId
+      });
+      program.examination = mapped.examination;
+      program.examId = mapped.examId;
+    }
     if (req.body.programStage) program.programStage = req.body.programStage;
     if (req.body.paperVariant !== undefined) program.paperVariant = req.body.paperVariant;
     program.year = year || program.year;
@@ -247,6 +288,9 @@ const updateProgram = async (req, res) => {
     });
   } catch (error) {
     console.error('Error in updateProgram:', error);
+    if (error.statusCode === 400) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
     
     if (error.name === 'ValidationError') {
       const messages = Object.values(error.errors).map(err => err.message);

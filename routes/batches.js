@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   createBatch,
   getAllBatchesAdmin,
+  listCatalogBatches,
   getActiveBatches,
   getBatchById,
   updateBatch,
@@ -11,11 +12,9 @@ const {
 } = require('../controllers/batchController');
 const { auth, adminAuth } = require('../middleware/auth');
 
-// Public routes
+router.get('/batches/admin', auth, adminAuth, listCatalogBatches);
 router.get('/programs/:programId/batches', getActiveBatches);
 router.get('/batches/:id', getBatchById);
-
-// Admin routes (protected)
 router.get('/programs/:programId/batches/admin', auth, adminAuth, getAllBatchesAdmin);
 router.post('/programs/:programId/batches', auth, adminAuth, createBatch);
 router.put('/batches/:id', auth, adminAuth, updateBatch);

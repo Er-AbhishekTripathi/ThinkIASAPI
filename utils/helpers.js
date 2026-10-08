@@ -52,11 +52,14 @@ const getMenuItems = (user) => {
         children: [
           { name: 'Testimonials', path: '/testimonials', icon: 'format_quote' },
           { name: 'Plan Benefits', path: '/support-features', icon: 'support_agent' },
+          { name: 'Manage Exams', path: '/manage-exams', icon: 'school' },
+          { name: 'App Settings', path: '/app-settings', icon: 'phone_android' },
           { name: 'Manage Plans', path: '/manage-plans', icon: 'payments' },
           { name: 'Careers', path: '/careers', icon: 'work' },
           { name: 'Website Quiz', path: '/quizzes', icon: 'fact_check' },
           { name: 'Simple News', path: '/simple-news-admin', icon: 'newspaper' },
           { name: 'Manage Program', path: '/manage-program', icon: 'fact_check' },
+          { name: 'Manage Batches', path: '/manage-batches', icon: 'layers' },
           { name: 'Manage FAQs', path: '/program-faqs', icon: 'help' },
           { name: 'Syllabus Master', path: '/syllabus-master', icon: 'menu_book' },
            { name: 'Free Resource', path: '/free-resource-admin', icon: 'inventory_2' }    

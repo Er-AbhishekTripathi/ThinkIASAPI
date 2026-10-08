@@ -15,10 +15,10 @@ const withCounts = async (exams) => {
 };
 
 const DEFAULT_EXAMS = [
-  { code: 'upsc', name: 'UPSC', nameHindi: 'यूपीएससी', displayOrder: 1 },
-  { code: 'uppsc', name: 'UPPSC', nameHindi: 'यूपीपीएससी', displayOrder: 2 },
-  { code: 'apsc', name: 'APSC', nameHindi: 'एपीएससी', displayOrder: 3 },
-  { code: 'epfo', name: 'EPFO', nameHindi: 'ईपीएफओ', displayOrder: 4 }
+  { code: 'upsc', name: 'UPSC', nameHindi: 'यूपीएससी', displayOrder: 1, isVisibleOnWebsite: true },
+  { code: 'uppsc', name: 'UPPSC', nameHindi: 'यूपीपीएससी', displayOrder: 2, isVisibleOnWebsite: true },
+  { code: 'apsc', name: 'APSC', nameHindi: 'एपीएससी', displayOrder: 3, isVisibleOnWebsite: true },
+  { code: 'epfo', name: 'EPFO', nameHindi: 'ईपीएफओ', displayOrder: 4, isVisibleOnWebsite: true }
 ];
 
 const ensureExams = async () => {
@@ -40,7 +40,10 @@ const slugify = (value) => String(value || 'exam')
 const getExams = async (_req, res) => {
   try {
     await ensureExams();
-    const data = await Exam.find({ isActive: true, isDeleted: { $ne: true } })
+    const data = await Exam.find({
+      isVisibleOnWebsite: { $ne: false },
+      isDeleted: { $ne: true }
+    })
       .sort({ displayOrder: 1, name: 1 })
       .select('-__v')
       .lean();
@@ -80,7 +83,8 @@ const createExam = async (req, res) => {
       nameHindi: req.body.nameHindi || '',
       description: req.body.description || '',
       displayOrder: Number(req.body.displayOrder) || 0,
-      isActive: req.body.isActive !== false
+      isActive: req.body.isActive !== false,
+      isVisibleOnWebsite: req.body.isVisibleOnWebsite !== false
     };
     if (!input.name) return res.status(400).json({ success: false, message: 'Exam name is required.' });
     input.code = String(req.body.code || slugify(input.name)).toLowerCase();
@@ -96,7 +100,7 @@ const createExam = async (req, res) => {
 
 const updateExam = async (req, res) => {
   try {
-    const allowed = ['name', 'nameHindi', 'description', 'displayOrder', 'isActive'];
+    const allowed = ['name', 'nameHindi', 'description', 'displayOrder', 'isActive', 'isVisibleOnWebsite'];
     const update = Object.fromEntries(allowed.filter((key) => req.body[key] !== undefined).map((key) => [key, req.body[key]]));
     const data = await Exam.findOneAndUpdate(
       { _id: req.params.id, isDeleted: { $ne: true } },

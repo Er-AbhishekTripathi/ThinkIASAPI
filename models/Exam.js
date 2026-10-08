@@ -14,6 +14,7 @@ const examSchema = new mongoose.Schema({
   description: { type: String, trim: true, default: '' },
   displayOrder: { type: Number, default: 0, min: 0 },
   isActive: { type: Boolean, default: true },
+  isVisibleOnWebsite: { type: Boolean, default: true },
   isDeleted: { type: Boolean, default: false }
 }, { timestamps: true });
 

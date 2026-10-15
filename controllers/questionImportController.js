@@ -3,6 +3,55 @@ const Tag = require('../models/Tag');
 const { parseCSV, validateQuestions, parseQuestionImportFile } = require('../utils/questionImport');
 const { fetchSheetQuestions } = require('../utils/googleSheetImport');
 
+const normalizeQuestionText = value => String(value || '')
+  .normalize('NFKC')
+  .toLowerCase()
+  .replace(/[^\p{L}\p{N}\p{M}]+/gu, ' ')
+  .trim()
+  .replace(/\s+/g, ' ');
+
+const getQuestionText = (question, language) => normalizeQuestionText(question?.[language]);
+
+const removeDuplicateQuestions = (input, existingQuestions) => {
+  const existingEnglish = new Set();
+  const existingHindi = new Set();
+  for (const item of existingQuestions) {
+    const english = getQuestionText(item.question, 'english');
+    const hindi = getQuestionText(item.question, 'hindi');
+    if (english) existingEnglish.add(english);
+    if (hindi) existingHindi.add(hindi);
+  }
+
+  const seenEnglish = new Map();
+  const seenHindi = new Map();
+  const questions = [];
+  const duplicateQuestions = [];
+
+  input.forEach((item, index) => {
+    const english = getQuestionText(item.question, 'english');
+    const hindi = getQuestionText(item.question, 'hindi');
+    const existing = (english && existingEnglish.has(english)) || (hindi && existingHindi.has(hindi));
+    const firstIndex = (english && seenEnglish.get(english)) || (hindi && seenHindi.get(hindi));
+
+    if (existing || firstIndex) {
+      duplicateQuestions.push({
+        duplicateIndex: index + 1,
+        ...(firstIndex ? { firstIndex } : {}),
+        questionText: item.question.english,
+        questionHindi: item.question.hindi,
+        reason: existing ? 'already-added' : 'repeated-in-file'
+      });
+      return;
+    }
+
+    questions.push(item);
+    if (english) seenEnglish.set(english, index + 1);
+    if (hindi) seenHindi.set(hindi, index + 1);
+  });
+
+  return { questions, duplicateQuestions };
+};
+
 const mergeBilingualQuestions = (files, parsedFiles) => {
   if (files.length !== 2 || parsedFiles.some(items => !items.length)) {
     throw new Error('Both English and Hindi DOCX files must contain questions.');
@@ -34,9 +83,22 @@ const mergeBilingualQuestions = (files, parsedFiles) => {
 
 const saveQuestions = async (req, input) => {
   validateQuestions(input);
+  const questionTexts = input.flatMap(item => [
+    item.question.english,
+    item.question.hindi
+  ].filter(Boolean));
+  const existingQuestions = questionTexts.length
+    ? await Question.find({
+      $or: [
+        { 'question.english': { $in: questionTexts } },
+        { 'question.hindi': { $in: questionTexts } }
+      ]
+    }).select('question.english question.hindi').lean()
+    : [];
+  const { questions, duplicateQuestions } = removeDuplicateQuestions(input, existingQuestions);
   const tags = await Tag.find().select('_id tag').lean();
   const tagLookup = new Map(tags.flatMap(tag => [[String(tag._id), String(tag._id)], [String(tag.tag).toLowerCase(), String(tag._id)]]));
-  const documents = input.map((item, index) => ({
+  const documents = questions.map((item, index) => ({
     question: item.question,
     description: item.description || { english: '', hindi: '' },
     options: item.options,
@@ -49,9 +111,17 @@ const saveQuestions = async (req, input) => {
     createdBy: req.user._id
   }));
   await Promise.all(documents.map(document => new Question(document).validate()));
-  if (req.body.preview === 'true' || req.body.preview === true) return { preview: true, count: documents.length, questions: documents };
-  const saved = await Question.insertMany(documents, { ordered: true });
-  return { preview: false, count: saved.length, message: `${saved.length} questions imported.`, messageHindi: `${saved.length} प्रश्न आयात किए गए।` };
+  if (req.body.preview === 'true' || req.body.preview === true) {
+    return { preview: true, count: documents.length, questions: documents, duplicateQuestions };
+  }
+  const saved = documents.length ? await Question.insertMany(documents, { ordered: true }) : [];
+  return {
+    preview: false,
+    count: saved.length,
+    duplicateQuestions,
+    message: `${saved.length} questions imported.`,
+    messageHindi: `${saved.length} प्रश्न आयात किए गए।`
+  };
 };
 
 exports.importQuestions = async (req, res) => {
@@ -79,8 +149,8 @@ exports.importQuestions = async (req, res) => {
       input = input.map(item => ({ ...item, tags: [...new Set([...(item.tags || []), ...importTags])] }));
     }
     const result = await saveQuestions(req, input);
-    if (result.preview) return res.json({ success: true, count: result.count, questions: result.questions });
-    res.status(201).json({ success: true, count: result.count, message: result.message, messageHindi: result.messageHindi });
+    if (result.preview) return res.json({ success: true, count: result.count, questions: result.questions, duplicateQuestions: result.duplicateQuestions });
+    res.status(201).json({ success: true, count: result.count, message: result.message, messageHindi: result.messageHindi, duplicateQuestions: result.duplicateQuestions });
   } catch (error) { res.status(400).json({ success: false, message: error.message }); }
 };
 
@@ -93,9 +163,10 @@ exports.importFromSheet = async (req, res) => {
       ? input.map(item => ({ ...item, tags: [...new Set([...(item.tags || []), ...importTags])] }))
       : input;
     const result = await saveQuestions(req, taggedInput);
-    if (result.preview) return res.json({ success: true, count: result.count, questions: result.questions });
-    res.status(201).json({ success: true, count: result.count, message: result.message, messageHindi: result.messageHindi });
+    if (result.preview) return res.json({ success: true, count: result.count, questions: result.questions, duplicateQuestions: result.duplicateQuestions });
+    res.status(201).json({ success: true, count: result.count, message: result.message, messageHindi: result.messageHindi, duplicateQuestions: result.duplicateQuestions });
   } catch (error) { res.status(400).json({ success: false, message: error.message }); }
 };
 
 exports.mergeBilingualQuestions = mergeBilingualQuestions;
+exports.removeDuplicateQuestions = removeDuplicateQuestions;

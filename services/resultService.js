@@ -143,7 +143,7 @@ class ResultService {
   return await Result.findOne({ test: testId, student: studentId })
     .populate({
       path: 'test',
-      select: 'title description startTime duration marksPerQuestion negativeMarks questionUids',
+      select: 'title description startTime duration marksPerQuestion negativeMarks questionUids introPage introPageHi introFontSize',
       populate: {
         path: 'questions',
         select: 'uid question description options correctAnswer tags',

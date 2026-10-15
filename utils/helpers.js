@@ -80,6 +80,8 @@ const getMenuItems = (user) => {
         icon: 'edit_note',
         children: [
            { name: 'Mains Test Series', path: '/mains-test-series', icon: 'description' },
+           { name: 'Mains Tag Management', path: '/mains-tag-master', icon: 'local_offer' },
+           { name: 'Mains Question Bank', path: '/mains-questions-master', icon: 'edit_note' },
            { name: 'Manage Answer Writing', path: '/answer-writing', icon: 'fact_check' },
            { name: 'Mains Meeting', path: '/mains-meeting-admin', icon: 'groups' },
            { name: 'Mains Resources Directory', path: '/directory-master', icon: 'library_books' },
@@ -239,7 +241,9 @@ const formatTestForStudent = (test) => ({
   totalQuestions: test.questions.length,
   totalMarks: test.totalMarks, // Use the virtual property
   status: test.status,
-  introPage: test.introPage
+  introPage: test.introPage,
+  introPageHi: test.introPageHi,
+  introFontSize: test.introFontSize
 });
 
 module.exports = {

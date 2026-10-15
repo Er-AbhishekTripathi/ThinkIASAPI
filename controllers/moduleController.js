@@ -231,6 +231,13 @@ const createFile = async (req, res) => {
       });
     }
 
+    let normalizedFileLink;
+    try {
+      normalizedFileLink = normalizeMaterialLink(fileLink);
+    } catch (error) {
+      return res.status(400).json({ message: error.message });
+    }
+
     const parent = await Module.findOne({ 
       _id: parentId, 
       createdBy: userId,
@@ -274,7 +281,7 @@ const createFile = async (req, res) => {
       },
       type: 'file',
       parent: parentId,
-      fileLink: normalizeMaterialLink(fileLink),
+      fileLink: normalizedFileLink,
       fileDescription: fileDescription || '',
       fileType: fileType,
       image: parent.image,
@@ -357,7 +364,11 @@ const updateFile = async (req, res) => {
       file.name.hindi = nameHindi;
     }
     if (fileLink) {
-      file.fileLink = normalizeMaterialLink(fileLink);
+      try {
+        file.fileLink = normalizeMaterialLink(fileLink);
+      } catch (error) {
+        return res.status(400).json({ message: error.message });
+      }
       
       const nameLower = nameEnglish || file.name.english;
       if (nameLower.endsWith('.pdf')) {

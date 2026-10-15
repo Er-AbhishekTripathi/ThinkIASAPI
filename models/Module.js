@@ -10,7 +10,7 @@ const moduleSchema = new mongoose.Schema({
     },
     hindi: {
       type: String,
-      required: true,
+      required: function() { return this.type === 'module'; },
       trim: true
     }
   },

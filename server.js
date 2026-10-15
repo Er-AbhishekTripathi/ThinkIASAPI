@@ -81,6 +81,8 @@ app.use('/api', require('./routes/application'));
 // Add this to your server.js file
 app.use('/api/syllabus', require('./routes/syllabus'));
 app.use('/api/tags', require('./routes/tags'));
+app.use('/api/mains-tags', require('./routes/mainsTags'));
+app.use('/api/mains-questions', require('./routes/mainsQuestions'));
 
 app.use('/api/testimonials', require('./routes/testimonial'));
 app.use('/api/support-features', require('./routes/supportFeature'));

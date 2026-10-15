@@ -23,7 +23,7 @@ const serialize = (item, papers = []) => {
     })
   };
 };
-const papersFor = ids => Test.find({ seriesId: { $in: ids } }).select('title description startTime endTime duration marksPerQuestion negativeMarks questionUids seriesId slotId seriesKind isActive introPage').lean().then(papers => {
+const papersFor = ids => Test.find({ seriesId: { $in: ids } }).select('title description startTime endTime duration marksPerQuestion negativeMarks questionUids seriesId slotId seriesKind isActive introPage introPageHi introFontSize').lean().then(papers => {
   papers.forEach(paper => { paper.slotId = paper.slotId != null ? String(paper.slotId) : paper.slotId; });
   return papers;
 });
@@ -159,4 +159,3 @@ module.exports = kind => {
   }));
   return router;
 };
-

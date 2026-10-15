@@ -1,5 +1,10 @@
 function normalizeMaterialLink(value) {
-  const url = new URL(String(value).trim());
+  let url;
+  try {
+    url = new URL(String(value).trim());
+  } catch {
+    throw new Error('Enter a valid HTTP or HTTPS material link.');
+  }
   if (!['http:', 'https:'].includes(url.protocol)) throw new Error('Use an HTTP or HTTPS material link.');
   if (url.hostname === 'drive.google.com') {
     // Preserve folder links and resource keys required by some shared files.

@@ -47,10 +47,11 @@ function parseDocumentQuestionBlock(blockText) {
 
   if (!lines.length) return null;
 
-  const answerMatch = blockText.match(/(?:Answer|उत्तर)\s*[:\-]?\s*(?:\(([A-Da-d])\)|\b([A-Da-d])\b)/i);
+  const answerMatch = blockText.match(/^\s*(?:(?:Correct\s+)?Answer|सही\s+उत्तर|उत्तर)\s*[:\-]?\s*(?:\(([A-Da-d])\)|\b([A-Da-d])\b)/im);
   const answerLetter = (answerMatch?.[1] || answerMatch?.[2] || '').toUpperCase();
   const answerIndex = 'ABCD'.indexOf(answerLetter);
-  const answerStart = blockText.search(/(?:Answer|उत्तर)\s*[:\-]?/i);
+  const answerStartMatch = blockText.match(/^\s*(?:Correct\s+Answer|Answer|सही\s+उत्तर|उत्तर)\s*[:\-]?/im);
+  const answerStart = answerStartMatch ? answerStartMatch.index : -1;
 
   const explanationMatch = blockText.match(/(?:Explanation|व्याख्या)\s*[:\-]?\s*(.*)/is);
   const explanationText = explanationMatch ? explanationMatch[1].trim() : '';
@@ -90,8 +91,7 @@ function parseDocumentQuestionBlock(blockText) {
 
   const questionText = questionParts
     .join(' ')
-    .replace(/^\d+[\.)]\s*/i, '')
-    .replace(/^(?:Question|प्रश्न)\s*\d+\s*[:\.-]?\s*/i, '')
+    .replace(/^(?:(?:Q(?:uestion)?|प्रश्न)\s*\.?\s*)?[0-9०-९]+[\).:\-]\s*/i, '')
     .trim();
   const cleanExplanation = explanationText || '';
 
@@ -113,20 +113,43 @@ function parseDocumentQuestionBlock(blockText) {
   };
 }
 
+function getDocumentQuestionStart(line) {
+  const match = line.match(/^(?:(?:Q(?:uestion)?|प्रश्न)\s*\.?\s*)?([0-9०-९]+)\s*[.):\-]\s*/i);
+  if (!match) return null;
+
+  const number = match[1].replace(/[०-९]/g, digit => String('०१२३४५६७८९'.indexOf(digit)));
+  return {
+    number: Number(number),
+    explicit: /^(?:Q(?:uestion)?|प्रश्न)\s*\.?\s*/i.test(line)
+  };
+}
+
 function parseDocumentTextQuestions(text) {
   const normalized = String(text || '').replace(/\r/g, '\n').replace(/\u00a0/g, ' ');
   const blocks = [];
   const lines = normalized.split('\n');
   let current = [];
+  let currentQuestionNumber = null;
 
   for (const line of lines) {
     const trimmed = line.trim();
-    if (/^(?:Q(?:uestion)?\s*)?\d+\s*[\.)]/i.test(trimmed)) {
-      if (current.length) {
-        blocks.push(current.join('\n'));
-      }
+    const questionStart = getDocumentQuestionStart(trimmed);
+    if (questionStart && !current.length) {
       current = [trimmed];
+      currentQuestionNumber = questionStart.number;
       continue;
+    }
+
+    if (questionStart && current.length) {
+      const currentQuestion = parseDocumentQuestionBlock(current.join('\n'));
+      const currentHasAllOptions = currentQuestion?.options.every(option => option.english.trim());
+      const isNextNumberedQuestion = questionStart.number === currentQuestionNumber + 1;
+      if (currentHasAllOptions && (questionStart.explicit || isNextNumberedQuestion)) {
+        blocks.push(current.join('\n'));
+        current = [trimmed];
+        currentQuestionNumber = questionStart.number;
+        continue;
+      }
     }
 
     if (trimmed) current.push(trimmed);
@@ -178,6 +201,52 @@ async function parseQuestionImportFile(fileBuffer, fileName) {
   throw new Error('Unsupported file type. Please upload a CSV, JSON, or DOCX file.');
 }
 
+async function parseTheoryDocumentQuestions(fileBuffer, fileName) {
+  if (!Buffer.isBuffer(fileBuffer)) {
+    throw new Error('No file content was provided.');
+  }
+  if (!/\.docx$/i.test(String(fileName || ''))) {
+    throw new Error('Mains question imports must be DOCX files.');
+  }
+
+  const result = await mammoth.extractRawText({ buffer: fileBuffer });
+  const lines = String(result.value || '')
+    .replace(/\r/g, '\n')
+    .replace(/\u00a0/g, ' ')
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean);
+  const blocks = [];
+  const isQuestionStart = line => /^(?:Q(?:uestion)?\s*)?[0-9०-९]+\s*[.):\-]/i.test(line)
+    || /^(?:Question|प्रश्न)\s*[0-9०-९]+\s*[:.-]/i.test(line);
+  const hasNumberedQuestions = lines.some(isQuestionStart);
+  let current = [];
+
+  if (!hasNumberedQuestions) {
+    throw new Error('Start each question with its number (for example, "1. Question text") in both DOCX files.');
+  }
+  for (const line of lines) {
+    if (isQuestionStart(line)) {
+      if (current.length) blocks.push(current.join('\n'));
+      current = [line];
+    } else if (current.length) {
+      current.push(line);
+    }
+  }
+  if (current.length) blocks.push(current.join('\n'));
+
+  const questions = blocks.map(block => ({
+    question: {
+      english: block.replace(/^\s*(?:(?:Q(?:uestion)?\s*)?[0-9०-९]+\s*[.):\-]\s*|(?:Question|प्रश्न)\s*[0-9०-९]+\s*[:.-]?\s*)/i, '').trim()
+    }
+  })).filter(item => item.question.english);
+
+  if (!questions.length) {
+    throw new Error('No questions could be detected inside the DOCX file.');
+  }
+  return questions;
+}
+
 function validateQuestions(input) {
   if (!Array.isArray(input) || !input.length || input.length > 1000) throw new Error('Provide between 1 and 1000 questions.');
   const errors = [];
@@ -194,4 +263,4 @@ function validateQuestions(input) {
   if (errors.length) throw new Error(errors.slice(0, 20).join('\n'));
   return input;
 }
-module.exports = { parseCSV, validateQuestions, parseQuestionImportFile, parseDocumentTextQuestions };
+module.exports = { parseCSV, validateQuestions, parseQuestionImportFile, parseTheoryDocumentQuestions, parseDocumentTextQuestions };

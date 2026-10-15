@@ -57,6 +57,16 @@ const testSchema = new mongoose.Schema({
     trim: true,
     default: ''
   },
+  introPageHi: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  introFontSize: {
+    type: Number,
+    enum: [14, 16, 18, 20, 22, 24, 28],
+    default: 18
+  },
   isActive: {
     type: Boolean,
     default: true,

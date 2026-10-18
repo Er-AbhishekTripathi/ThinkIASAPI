@@ -97,7 +97,9 @@ test('Google Sheet links convert to CSV export and exam windows honour reopen', 
   assert.ok(!mainsExam.children.some(child => child.path === '/pre-session'));
   assert.ok(testSeries.children.some(item => item.name === 'Prelims Test Series' && item.children.some(child => child.path === '/prelims-test-series')));
   assert.ok(testSeries.children.some(item => item.name === 'Mains Test Series' && item.children.some(child => child.path === '/mains-test-series')));
-  assert.ok(combo.some(item => item.name === 'Optional Mentorship Course'));
+  const optionalMentorship = combo.find(item => item.name === 'Optional Mentorship Course');
+  assert.ok(optionalMentorship.children.some(item => item.name === 'History' && item.children.some(child => child.path === '/student-answer-writing')));
+  assert.ok(combo.find(item => item.name === 'Qualifying Papers').children.some(item => item.name === 'Paper B (English)'));
   assert.ok(combo.some(item => item.name === 'Essay'));
   assert.ok(combo.some(item => item.name === 'Live classes'));
   assert.ok(combo.some(item => item.path === '/support-tickets'));

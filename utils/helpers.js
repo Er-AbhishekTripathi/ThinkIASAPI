@@ -64,7 +64,18 @@ const getMenuItems = (user) => {
       { name: 'Live Test', path: '/live-test', icon: 'description' }
     ]
   };
-  const optionalGroup = (name) => ({ name, path: '', icon: 'menu_book', children: mainsTrackChildren });
+  const optionalSubjects = ['History', 'Geography', 'PSIR', 'Hindi', 'Mathematics'];
+  const qualifyingPapers = ['Paper A (Indian Language)', 'Paper B (English)'];
+  const subjectGroup = (name, subjects, children) => ({
+    name,
+    path: '',
+    icon: 'menu_book',
+    children: subjects.map((subject) => ({ name: subject, path: '', icon: 'menu_book', children }))
+  });
+  const optionalMentorshipGroup = subjectGroup('Optional Mentorship Course', optionalSubjects, mainsTrackChildren);
+  const optionalSeriesGroup = subjectGroup('Optional Test Series', optionalSubjects, mainsSeriesGroup.children);
+  const essayGroup = { name: 'Essay', path: '', icon: 'edit_note', children: mainsTrackChildren };
+  const qualifyingGroup = subjectGroup('Qualifying Papers', qualifyingPapers, mainsTrackChildren);
   const liveClassesMenu = {
     name: 'Live classes',
     path: '',
@@ -199,11 +210,11 @@ const getMenuItems = (user) => {
         return [
           ...commonItems,
           { name: 'Mentorship Course', path: '', icon: 'school', children: mentorshipChildren },
-          optionalGroup('Optional Mentorship Course'),
+          optionalMentorshipGroup,
           { name: 'Test Series', path: '', icon: 'event_note', children: testSeriesChildren },
-          optionalGroup('Optional Test Series'),
-          optionalGroup('Essay'),
-          optionalGroup('Qualifying Papers'),
+          optionalSeriesGroup,
+          essayGroup,
+          qualifyingGroup,
           liveClassesMenu,
           supportMenu
         ];
@@ -212,11 +223,11 @@ const getMenuItems = (user) => {
         return [
           ...commonItems,
           { name: 'Mentorship Course', path: '', icon: 'school', children: mentorshipChildren },
-          optionalGroup('Optional Mentorship Course'),
+          optionalMentorshipGroup,
           { name: 'Test Series', path: '', icon: 'event_note', children: testSeriesChildren },
-          optionalGroup('Optional Test Series'),
-          optionalGroup('Essay'),
-          optionalGroup('Qualifying Papers'),
+          optionalSeriesGroup,
+          essayGroup,
+          qualifyingGroup,
           liveClassesMenu,
           supportMenu
         ];

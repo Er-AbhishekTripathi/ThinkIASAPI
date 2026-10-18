@@ -16,8 +16,66 @@ const getMenuItems = (user) => {
 
   const role = user.role;
   const type = user.type;
-  const prelimsSeriesMenu = { name: 'Prelims Test Series', path: '/prelims-test-series', icon: 'event_note' };
-  const mainsSeriesMenu = { name: 'Mains Test Series', path: '/mains-test-series', icon: 'event_note' };
+  const prelimsExamMenu = {
+    name: 'Prelims Examination',
+    path: '',
+    icon: 'quiz',
+    children: [
+      { name: 'Tests (GS and CSAT)', path: '/prelims-tests', icon: 'quiz' },
+      { name: 'Results', path: '/prelims-results', icon: 'assignment' },
+      { name: 'Resources / Study Notes', path: '/pre-materials', icon: 'library_books' },
+      { name: 'Mentorship Sessions', path: '/pre-session', icon: 'groups' }
+    ]
+  };
+  const mainsExamMenu = {
+    name: 'Mains Examination',
+    path: '',
+    icon: 'edit_note',
+    children: [
+      { name: 'Daily Answer Writing', path: '/student-answer-writing', icon: 'description' },
+      { name: 'Daily Answer Evaluation', path: '/mains-results', icon: 'assignment' },
+      { name: 'Study Materials', path: '/mains-materials', icon: 'library_books' },
+      { name: 'Mentorship Sessions', path: '/mains-session', icon: 'groups' },
+      { name: 'Live Test', path: '/live-test', icon: 'description' }
+    ]
+  };
+  const mainsTrackChildren = mainsExamMenu.children;
+  const prelimsSeriesGroup = {
+    name: 'Prelims Test Series',
+    path: '',
+    icon: 'quiz',
+    children: [
+      { name: 'Tests (GS and CSAT)', path: '/prelims-test-series', icon: 'event_note' },
+      { name: 'Results', path: '/prelims-results', icon: 'assignment' },
+      { name: 'Resources / Study Notes', path: '/pre-materials', icon: 'library_books' },
+      { name: 'Mentorship Sessions', path: '/pre-session', icon: 'groups' }
+    ]
+  };
+  const mainsSeriesGroup = {
+    name: 'Mains Test Series',
+    path: '',
+    icon: 'edit_note',
+    children: [
+      { name: 'Tests', path: '/mains-test-series', icon: 'event_note' },
+      { name: 'Answer Writing', path: '/student-answer-writing', icon: 'description' },
+      { name: 'Answer Evaluation', path: '/mains-results', icon: 'assignment' },
+      { name: 'Study Materials', path: '/mains-materials', icon: 'library_books' },
+      { name: 'Mentorship Sessions', path: '/mains-session', icon: 'groups' },
+      { name: 'Live Test', path: '/live-test', icon: 'description' }
+    ]
+  };
+  const optionalGroup = (name) => ({ name, path: '', icon: 'menu_book', children: mainsTrackChildren });
+  const liveClassesMenu = {
+    name: 'Live classes',
+    path: '',
+    icon: 'live_tv',
+    children: [
+      { name: 'Daily Current Affairs', path: '/view/current', icon: 'article' },
+      { name: 'G.S.', path: '/pre-materials', icon: 'menu_book' },
+      { name: 'CSAT', path: '/prelims-tests', icon: 'quiz' }
+    ]
+  };
+  const supportMenu = { name: 'Support Tickets', path: '/support-tickets', icon: 'support' };
 
   // Admin menu (no type needed)
   if (role === 'admin') {
@@ -109,69 +167,58 @@ const getMenuItems = (user) => {
 
   // Student menus based on type
   if (role === 'student') {
+    const mentorshipChildren = [];
+    const testSeriesChildren = [];
+    if (type === USER_TYPES.PRE || type === USER_TYPES.COMBO) {
+      mentorshipChildren.push(prelimsExamMenu);
+      testSeriesChildren.push(prelimsSeriesGroup);
+    }
+    if (type === USER_TYPES.MAINS || type === USER_TYPES.COMBO) {
+      mentorshipChildren.push(mainsExamMenu);
+      testSeriesChildren.push(mainsSeriesGroup);
+    }
+
     switch (type) {
       case USER_TYPES.FRESH:
         return [
           ...commonItems,
           { name: 'Demo Test', path: '/demo-tests', icon: 'assignment' },
-          { name: 'Support Tickets', path: '/support-tickets', icon: 'support' },
+          supportMenu
         ];
 
       case USER_TYPES.PRE:
         return [
           ...commonItems,
-          prelimsSeriesMenu,
-          { name: 'Prelims', path: '', icon: 'quiz', children: [
-            { name: 'Prelims Tests', path: '/prelims-tests', icon: 'quiz' },
-            { name: 'Prelims Results', path: '/prelims-results', icon: 'assignment' },
-            { name: 'Resources', path: '/pre-materials', icon: 'library_books' },
-            { name: 'Mentorship Sessions', path: '/pre-session', icon: 'groups' }
-          ] },
-          { name: 'Support Tickets', path: '/support-tickets', icon: 'support' },
-
-
-          // { name: 'Test History', path: '/test-history', icon: 'history' },
-          // { name: 'Current Affairs', path: '/current-affairs', icon: 'article' }
+          { name: 'Mentorship Course', path: '', icon: 'school', children: mentorshipChildren },
+          { name: 'Test Series', path: '', icon: 'event_note', children: testSeriesChildren },
+          liveClassesMenu,
+          supportMenu
         ];
 
       case USER_TYPES.MAINS:
         return [
           ...commonItems,
-          mainsSeriesMenu,
-          { name: 'Mains', path: '', icon: 'edit_note', children: [
-            { name: 'Daily Answer Writing', path: '/student-answer-writing', icon: 'description' },
-            { name: 'DAW Evaluation', path: '/mains-results', icon: 'assignment' },
-            { name: 'Study Materials', path: '/mains-materials', icon: 'library_books' },
-            { name: 'Mentorship Sessions', path: '/mains-session', icon: 'groups' },
-            { name: 'Live Tests', path: '/live-test', icon: 'description' }
-          ] },
-          { name: 'Support Tickets', path: '/support-tickets', icon: 'support' },
-
-          // { name: 'Answer Writing', path: '/answer-writing', icon: 'edit_note' },
-          // { name: 'Test History', path: '/test-history', icon: 'history' },
-          // { name: 'Essay Practice', path: '/essay-practice', icon: 'create' },
-          // { name: 'Optional Subject', path: '/optional', icon: 'menu_book' }
+          { name: 'Mentorship Course', path: '', icon: 'school', children: mentorshipChildren },
+          optionalGroup('Optional Mentorship Course'),
+          { name: 'Test Series', path: '', icon: 'event_note', children: testSeriesChildren },
+          optionalGroup('Optional Test Series'),
+          optionalGroup('Essay'),
+          optionalGroup('Qualifying Papers'),
+          liveClassesMenu,
+          supportMenu
         ];
 
       case USER_TYPES.COMBO:
         return [
           ...commonItems,
-          prelimsSeriesMenu,
-          mainsSeriesMenu,
-          { name: 'Prelims', path: '', icon: 'quiz', children: [
-            { name: 'Prelims Tests', path: '/prelims-tests', icon: 'quiz' },
-            { name: 'Prelims Results', path: '/prelims-results', icon: 'assignment' },
-            { name: 'Resources', path: '/pre-materials', icon: 'library_books' },
-            { name: 'Mentorship Sessions', path: '/pre-session', icon: 'groups' }
-          ] },
-          { name: 'Mains', path: '', icon: 'edit_note', children: [
-            { name: 'Daily Answer Writing', path: '/student-answer-writing', icon: 'description' },
-            { name: 'DAW Evaluation', path: '/mains-results', icon: 'assignment' },
-            { name: 'Study Materials', path: '/mains-materials', icon: 'library_books' },
-            { name: 'Mentorship Sessions', path: '/mains-session', icon: 'groups' },
-            { name: 'Live Tests', path: '/live-test', icon: 'description' }
-          ] },
-          { name: 'Support Tickets', path: '/support-tickets', icon: 'support' }
+          { name: 'Mentorship Course', path: '', icon: 'school', children: mentorshipChildren },
+          optionalGroup('Optional Mentorship Course'),
+          { name: 'Test Series', path: '', icon: 'event_note', children: testSeriesChildren },
+          optionalGroup('Optional Test Series'),
+          optionalGroup('Essay'),
+          optionalGroup('Qualifying Papers'),
+          liveClassesMenu,
+          supportMenu
         ];
 
       default:

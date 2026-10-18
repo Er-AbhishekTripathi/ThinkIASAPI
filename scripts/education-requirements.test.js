@@ -87,9 +87,19 @@ test('Google Sheet links convert to CSV export and exam windows honour reopen', 
   assert.equal(examWindow({ startDateTime: past, endDateTime: past }, { until: later }).canTake, true);
   assert.equal(examWindow({ startTime: past, endTime: past }, { until: later }).endTime, later);
   const combo = getMenuItems({ role: 'student', type: 'combo' });
-  assert.ok(combo.some(item => item.path === '/prelims-test-series' && !item.children));
-  assert.ok(combo.some(item => item.path === '/mains-test-series' && !item.children));
-  assert.ok(combo.some(item => item.name === 'Prelims' && !item.children.some(child => child.path === '/prelims-test-series')));
+  const mentorship = combo.find(item => item.name === 'Mentorship Course');
+  const testSeries = combo.find(item => item.name === 'Test Series');
+  const prelimsExam = mentorship.children.find(item => item.name === 'Prelims Examination');
+  const mainsExam = mentorship.children.find(item => item.name === 'Mains Examination');
+  assert.ok(prelimsExam.children.some(child => child.path === '/prelims-tests'));
+  assert.ok(!prelimsExam.children.some(child => child.path === '/prelims-test-series'));
+  assert.ok(mainsExam.children.some(child => child.path === '/mains-session'));
+  assert.ok(!mainsExam.children.some(child => child.path === '/pre-session'));
+  assert.ok(testSeries.children.some(item => item.name === 'Prelims Test Series' && item.children.some(child => child.path === '/prelims-test-series')));
+  assert.ok(testSeries.children.some(item => item.name === 'Mains Test Series' && item.children.some(child => child.path === '/mains-test-series')));
+  assert.ok(combo.some(item => item.name === 'Optional Mentorship Course'));
+  assert.ok(combo.some(item => item.name === 'Essay'));
+  assert.ok(combo.some(item => item.name === 'Live classes'));
   assert.ok(combo.some(item => item.path === '/support-tickets'));
   const { slotDateTime, calendarDay } = require('../utils/istTime');
   const slot = slotDateTime({ date: '2026-09-23T00:00:00.000Z', time: '09:00' });
@@ -97,10 +107,13 @@ test('Google Sheet links convert to CSV export and exam windows honour reopen', 
   assert.equal(slot.getUTCHours(), 3);
   assert.equal(slot.getUTCMinutes(), 30);
   const mainsMenu = getMenuItems({ role: 'student', type: 'mains' });
-  const mainsGroup = mainsMenu.find(item => item.name === 'Mains');
+  const mainsMentorship = mainsMenu.find(item => item.name === 'Mentorship Course');
+  const mainsGroup = mainsMentorship.children.find(item => item.name === 'Mains Examination');
   assert.ok(mainsGroup.children.some(child => child.path === '/mains-session'));
   assert.ok(!mainsGroup.children.some(child => child.path === '/pre-session'));
-  assert.ok(mainsMenu.some(item => item.path === '/mains-test-series'));
+  assert.ok(!mainsMentorship.children.some(item => item.name === 'Prelims Examination'));
+  const mainsSeries = mainsMenu.find(item => item.name === 'Test Series').children.find(item => item.name === 'Mains Test Series');
+  assert.ok(mainsSeries.children.some(child => child.path === '/mains-test-series'));
 });
 
 test('Google Sheet import retries alternate CSV export endpoints when the first export is blocked', async () => {

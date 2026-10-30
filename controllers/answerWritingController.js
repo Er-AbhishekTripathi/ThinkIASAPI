@@ -523,7 +523,7 @@ const getMySubmissions = async (req, res) => {
     const { getPresignedUrl } = require('../config/r2');
 
     const submissions = await StudentAnswerSubmission.find({ studentId: req.user._id })
-      .populate('answerWritingId', 'name nameHi description descriptionHi questions questionPaperPDF questionPaperPDFHi startDateTime endDateTime')
+      .populate('answerWritingId', 'name nameHi description descriptionHi questions questionPaperPDF questionPaperPDFHi modelAnswer startDateTime endDateTime')
       .sort({ submittedAt: -1 });
 
     const data = await Promise.all(submissions.map(async (sub) => {
@@ -539,6 +539,17 @@ const getMySubmissions = async (req, res) => {
       }
       
       if (exercise) {
+        subObj.modelAnswer = isModelAnswerAvailable(exercise.modelAnswer) ? {
+          remark: exercise.modelAnswer.remark || '',
+          answerEnglish: exercise.modelAnswer.answerEnglish || '',
+          answerHindi: exercise.modelAnswer.answerHindi || '',
+          modelAnswerPDF: exercise.modelAnswer.modelAnswerPDF || '',
+          modelAnswerPDFHi: exercise.modelAnswer.modelAnswerPDFHi || '',
+          releaseStartAt: exercise.modelAnswer.releaseStartAt || null,
+          releaseEndAt: exercise.modelAnswer.releaseEndAt || null,
+          isActive: exercise.modelAnswer.isActive
+        } : null;
+
         if (lang === 'hi') {
           exercise.name = exercise.nameHi || exercise.name;
           exercise.description = exercise.descriptionHi || exercise.description;

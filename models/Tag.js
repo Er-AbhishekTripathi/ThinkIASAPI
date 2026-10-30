@@ -19,6 +19,12 @@ const tagSchema = new mongoose.Schema({
     trim: true,
     lowercase: true
   },
+  types: {
+    type: String,
+    required: [true, 'Types is required'],
+    trim: true,
+    lowercase: true
+  },
   tag: {
     type: String,
     unique: true,
@@ -35,18 +41,19 @@ const tagSchema = new mongoose.Schema({
 
 // Generate tag (full path) before saving
 tagSchema.pre('save', function(next) {
-  this.tag = `${this.category}/${this.subCategory}/${this.topic}`;
+  this.tag = `${this.types}/${this.category}/${this.subCategory}/${this.topic}`;
   next();
 });
 
 // Update tag before updating
 tagSchema.pre('findOneAndUpdate', function(next) {
   const update = this.getUpdate();
-  if (update.category || update.subCategory || update.topic) {
+  if (update.category || update.subCategory || update.topic || update.types) {
     const category = update.category || this._conditions.category;
     const subCategory = update.subCategory || this._conditions.subCategory;
     const topic = update.topic || this._conditions.topic;
-    update.tag = `${category}/${subCategory}/${topic}`;
+    const types = update.types || this._conditions.types;
+    update.tag = `${types}/${category}/${subCategory}/${topic}`;
   }
   next();
 });

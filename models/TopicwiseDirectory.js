@@ -23,7 +23,8 @@ const topicwiseDirectorySchema = new mongoose.Schema({
       'gs3-analysis', 
       'gs4-analysis', 
       'essay-analysis', 
-      'optional-subjects'
+      'optional-subjects',
+      'qualifying-paper'
     ],
     index: true
   },

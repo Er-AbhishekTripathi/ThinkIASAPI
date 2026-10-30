@@ -4,10 +4,13 @@ const { handleError } = require('../middleware/errorHandler');
 // Create new tag
 const createTag = async (req, res) => {
   try {
-    const { category, subCategory, topic } = req.body;
+    const { category, subCategory, topic, types } = req.body;
+    if (![category, subCategory, topic, types].every(value => typeof value === 'string' && value.trim())) {
+      return res.status(400).json({ message: 'Category, sub-category, topic, and types are required' });
+    }
     
     // Generate tag path
-    const tagPath = `${category.toLowerCase()}/${subCategory.toLowerCase()}/${topic.toLowerCase()}`;
+    const tagPath = `${types.trim().toLowerCase()}/${category.trim().toLowerCase()}/${subCategory.trim().toLowerCase()}/${topic.trim().toLowerCase()}`;
     
     // Check if tag already exists
     const existingTag = await Tag.findOne({ tag: tagPath });
@@ -21,6 +24,7 @@ const createTag = async (req, res) => {
       category: category.toLowerCase(),
       subCategory: subCategory.toLowerCase(),
       topic: topic.toLowerCase(),
+      types: types.toLowerCase(),
       createdBy: req.user._id
     });
 
@@ -33,6 +37,7 @@ const createTag = async (req, res) => {
         category: tag.category,
         subCategory: tag.subCategory,
         topic: tag.topic,
+        types: tag.types,
         tag: tag.tag
       }
     });
@@ -50,7 +55,7 @@ const createTag = async (req, res) => {
 const getTags = async (req, res) => {
   try {
     const tags = await Tag.find()
-      .select('_id category subCategory topic tag')
+      .select('_id category subCategory topic types tag')
       .sort({ category: 1, subCategory: 1, topic: 1 });
 
     res.json(tags);
@@ -72,10 +77,13 @@ const getCategories = async (req, res) => {
 // Update tag
 const updateTag = async (req, res) => {
   try {
-    const { category, subCategory, topic } = req.body;
+    const { category, subCategory, topic, types } = req.body;
+    if (![category, subCategory, topic, types].every(value => typeof value === 'string' && value.trim())) {
+      return res.status(400).json({ message: 'Category, sub-category, topic, and types are required' });
+    }
     
     // Generate new tag path
-    const newTagPath = `${category.toLowerCase()}/${subCategory.toLowerCase()}/${topic.toLowerCase()}`;
+    const newTagPath = `${types.trim().toLowerCase()}/${category.trim().toLowerCase()}/${subCategory.trim().toLowerCase()}/${topic.trim().toLowerCase()}`;
     
     // Check if new path conflicts with existing tag
     const existingTag = await Tag.findOne({ 
@@ -94,10 +102,11 @@ const updateTag = async (req, res) => {
       { 
         category: category.toLowerCase(),
         subCategory: subCategory.toLowerCase(),
-        topic: topic.toLowerCase()
+        topic: topic.toLowerCase(),
+        types: types.toLowerCase()
       },
       { new: true, runValidators: true }
-    ).select('_id category subCategory topic tag');
+    ).select('_id category subCategory topic types tag');
 
     if (!tag) {
       return res.status(404).json({ message: 'Tag not found' });

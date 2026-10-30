@@ -15,7 +15,7 @@ const createFolder = async (req, res) => {
     const validCategories = [
       'prelims-paper-1', 'prelims-paper-2',
       'gs1-analysis', 'gs2-analysis', 'gs3-analysis',
-      'gs4-analysis', 'essay-analysis', 'optional-subjects'
+      'gs4-analysis', 'essay-analysis', 'optional-subjects', 'qualifying-paper'
     ];
     
     if (!validCategories.includes(category)) {
@@ -106,7 +106,7 @@ const createFile = async (req, res) => {
     const validCategories = [
       'prelims-paper-1', 'prelims-paper-2',
       'gs1-analysis', 'gs2-analysis', 'gs3-analysis',
-      'gs4-analysis', 'essay-analysis', 'optional-subjects'
+      'gs4-analysis', 'essay-analysis', 'optional-subjects', 'qualifying-paper'
     ];
     
     if (!validCategories.includes(category)) {
@@ -216,7 +216,7 @@ const getDirectoryTree = async (req, res) => {
     const validCategories = [
       'prelims-paper-1', 'prelims-paper-2',
       'gs1-analysis', 'gs2-analysis', 'gs3-analysis',
-      'gs4-analysis', 'essay-analysis', 'optional-subjects'
+      'gs4-analysis', 'essay-analysis', 'optional-subjects', 'qualifying-paper'
     ];
     
     if (!validCategories.includes(category)) {
@@ -437,7 +437,7 @@ const getPublicDirectoryTree = async (req, res) => {
     const validCategories = [
       'prelims-paper-1', 'prelims-paper-2',
       'gs1-analysis', 'gs2-analysis', 'gs3-analysis',
-      'gs4-analysis', 'essay-analysis', 'optional-subjects'
+      'gs4-analysis', 'essay-analysis', 'optional-subjects', 'qualifying-paper'
     ];
     
     if (!validCategories.includes(category)) {

@@ -2,6 +2,7 @@ const Test = require('../models/Test');
 const Result = require('../models/Result');
 const User = require('../models/User');
 const Question = require('../models/Question');
+const MainsQuestion = require('../models/MainsQuestion');
 const SupportTicket = require('../models/SupportTicket');
 const QuizSubmission = require('../models/QuizSubmission');
 const DemoResult = require('../models/DemoResult');
@@ -84,13 +85,14 @@ class AnalyticsService {
 
   static async getPlatformStatistics() {
     const since24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const [totalTests, totalStudents, resultCounts, prelimsTests, mainsTests, totalQuestions, newSupportRequests, openSupportRequests, quizAttempts, recentQuizAttempts, demoAttempts, recentDemoAttempts] = await Promise.all([
+    const [totalTests, totalStudents, resultCounts, prelimsTests, mainsTests, prelimsQuestions, mainsQuestions, newSupportRequests, openSupportRequests, quizAttempts, recentQuizAttempts, demoAttempts, recentDemoAttempts] = await Promise.all([
       Test.countDocuments({ isDeleted: { $ne: true } }),
       User.countDocuments({ role: 'student' }),
       Result.aggregate([...withExistingTest(), { $count: 'count' }]),
       Test.countDocuments({ isDeleted: { $ne: true }, seriesKind: 'pre' }),
       Test.countDocuments({ isDeleted: { $ne: true }, seriesKind: 'mains' }),
       Question.countDocuments({}),
+      MainsQuestion.countDocuments({}),
       SupportTicket.countDocuments({ createdAt: { $gte: since24Hours } }),
       SupportTicket.countDocuments({ status: { $in: ['open', 'in_progress'] } }),
       QuizSubmission.countDocuments({}),
@@ -141,7 +143,9 @@ class AnalyticsService {
       totalResults,
       prelimsTests,
       mainsTests,
-      totalQuestions,
+      totalQuestions: prelimsQuestions,
+      prelimsQuestions,
+      mainsQuestions,
       newSupportRequests,
       openSupportRequests,
       quizAttempts,

@@ -9,6 +9,7 @@ test('dashboard counts exclude results linked to deleted tests',async()=>{
     '../models/Test':{collection:{name:'tests'},countDocuments:async filter=>{if(filter.isDeleted)assert.equal(filter.isDeleted.$ne,true);return filter.seriesKind==='pre'?4:filter.seriesKind==='mains'?5:12;}},
   '../models/User':{collection:{name:'users'},countDocuments:async filter=>{assert.deepEqual(filter.role,'student');return 34;}},
   '../models/Question':{countDocuments:async()=>56},
+  '../models/MainsQuestion':{countDocuments:async()=>21},
   '../models/SupportTicket':{countDocuments:async filter=>filter.status?9:2},
   '../models/QuizSubmission':{countDocuments:async filter=>filter.submittedAt?2:8},
   '../models/DemoResult':{countDocuments:async filter=>filter.submittedAt?3:7},
@@ -26,6 +27,7 @@ test('dashboard counts exclude results linked to deleted tests',async()=>{
  const stats=await module.exports.getPlatformStatistics();
  assert.equal(stats.totalTests,12);assert.equal(stats.totalStudents,34);assert.equal(stats.totalResults,9);
  assert.equal(stats.prelimsTests,4);assert.equal(stats.mainsTests,5);assert.equal(stats.totalQuestions,56);
+ assert.equal(stats.prelimsQuestions,56);assert.equal(stats.mainsQuestions,21);
  assert.equal(stats.newSupportRequests,2);assert.equal(stats.openSupportRequests,9);
  assert.equal(stats.quizAttempts,8);assert.equal(stats.recentQuizAttempts,2);
  assert.equal(stats.demoAttempts,7);assert.equal(stats.recentDemoAttempts,3);

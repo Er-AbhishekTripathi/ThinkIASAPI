@@ -21,6 +21,7 @@ const videoLectureSchema = new mongoose.Schema({
       'gs3-videos', 
       'gs4-videos', 
       'essay-videos', 
+      'qualifying-paper-videos',
       'strategy-sessions',
       'current-affairs',
       'mock-interviews'

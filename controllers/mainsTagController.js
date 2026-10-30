@@ -2,19 +2,20 @@ const mongoose = require('mongoose');
 const MainsTag = require('../models/MainsTag');
 const { handleError } = require('../middleware/errorHandler');
 
-const normalizeTagFields = ({ category, subCategory, topic } = {}) => ({
+const normalizeTagFields = ({ category, subCategory, topic, types } = {}) => ({
   category: typeof category === 'string' ? category.trim().toLowerCase() : '',
   subCategory: typeof subCategory === 'string' ? subCategory.trim().toLowerCase() : '',
-  topic: typeof topic === 'string' ? topic.trim().toLowerCase() : ''
+  topic: typeof topic === 'string' ? topic.trim().toLowerCase() : '',
+  types: typeof types === 'string' ? types.trim().toLowerCase() : ''
 });
 
 const createTag = async (req, res) => {
   try {
     const fields = normalizeTagFields(req.body);
-    if (!fields.category || !fields.subCategory || !fields.topic) {
-      return res.status(400).json({ message: 'Category, sub-category, and topic are required.' });
+    if (!fields.category || !fields.subCategory || !fields.topic || !fields.types) {
+      return res.status(400).json({ message: 'Category, sub-category, topic, and types are required.' });
     }
-    const tagPath = `${fields.category}/${fields.subCategory}/${fields.topic}`;
+    const tagPath = `${fields.types}/${fields.category}/${fields.subCategory}/${fields.topic}`;
     if (await MainsTag.exists({ tag: tagPath })) {
       return res.status(409).json({ message: 'Mains tag already exists.' });
     }
@@ -29,7 +30,7 @@ const createTag = async (req, res) => {
 const getTags = async (req, res) => {
   try {
     const tags = await MainsTag.find()
-      .select('_id category subCategory topic tag')
+      .select('_id category subCategory topic types tag')
       .sort({ category: 1, subCategory: 1, topic: 1 });
     res.json(tags);
   } catch (error) {
@@ -51,17 +52,17 @@ const updateTag = async (req, res) => {
       return res.status(400).json({ message: 'Invalid Mains tag ID.' });
     }
     const fields = normalizeTagFields(req.body);
-    if (!fields.category || !fields.subCategory || !fields.topic) {
-      return res.status(400).json({ message: 'Category, sub-category, and topic are required.' });
+    if (!fields.category || !fields.subCategory || !fields.topic || !fields.types) {
+      return res.status(400).json({ message: 'Category, sub-category, topic, and types are required.' });
     }
-    const tagPath = `${fields.category}/${fields.subCategory}/${fields.topic}`;
+    const tagPath = `${fields.types}/${fields.category}/${fields.subCategory}/${fields.topic}`;
     if (await MainsTag.exists({ tag: tagPath, _id: { $ne: req.params.id } })) {
       return res.status(409).json({ message: 'A Mains tag with this path already exists.' });
     }
     const tag = await MainsTag.findByIdAndUpdate(req.params.id, fields, {
       new: true,
       runValidators: true
-    }).select('_id category subCategory topic tag');
+    }).select('_id category subCategory topic types tag');
     if (!tag) return res.status(404).json({ message: 'Mains tag not found.' });
     res.json({ message: 'Mains tag updated successfully.', tag });
   } catch (error) {

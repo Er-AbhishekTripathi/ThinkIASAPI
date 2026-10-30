@@ -74,6 +74,19 @@ const getQuestions = async (req, res) => {
   }
 };
 
+const getAllQuestions = async (_req, res) => {
+  try {
+    const questions = await MainsQuestion.find()
+      .populate('tags', '_id category subCategory topic types tag')
+      .sort({ createdAt: -1 })
+      .select('-__v');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.json({ questions, totalCount: questions.length });
+  } catch (error) {
+    handleError(res, error, 'Failed to fetch all Mains questions.');
+  }
+};
+
 const createQuestion = async (req, res) => {
   try {
     const questionData = normalizeQuestion(req.body);
@@ -210,4 +223,4 @@ const importQuestions = async (req, res) => {
   }
 };
 
-module.exports = { getQuestions, createQuestion, updateQuestion, deleteQuestion, deleteAllQuestions, importQuestions };
+module.exports = { getQuestions, getAllQuestions, createQuestion, updateQuestion, deleteQuestion, deleteAllQuestions, importQuestions };

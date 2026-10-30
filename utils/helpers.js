@@ -92,25 +92,107 @@ const getMenuItems = (user) => {
   if (role === 'admin') {
     return [
       ...commonItems,
-      { name: 'Manage Tests', path: '/manage-tests', icon: 'settings' },
-      { name: 'Results & Analytics', path: '/admin-results', icon: 'analytics' },
       
+
       {
-        name: 'Quiz Management',
+        name: 'Mentorship Course',
         path: '',
-        icon: 'quiz',
+        icon: 'school',
         children: [
-          { name: 'Tag Management', path: '/tag-master', icon: 'local_offer' },
-          { name: 'Question Bank', path: '/questions-master', icon: 'quiz' }     
+          {
+            name: 'Prelims Examination',
+            path: '',
+            icon: 'quiz',
+            children: [
+              { name: 'Tag Management', path: '/tag-master', icon: 'local_offer' },
+
+              { name: 'Question Bank', path: '/questions-master', icon: 'quiz' },
+
+              { name: 'Manage Tests', path: '/manage-tests', icon: 'settings' },
+
+              { name: 'Results & Analytics', path: '/admin-results', icon: 'analytics' },
+
+              { name: 'Pre Resources Directory', path: '/directory-master', icon: 'library_books' },
+
+              { name: 'Prelims Meeting', path: '/meeting-admin', icon: 'groups' }
+            ]
+          },
+          {
+            name: 'Mains Section',
+            path: '',
+            icon: 'edit_note',
+            children: [
+              { name: 'Mains Tag Management', path: '/mains-tag-master', icon: 'local_offer' },
+
+              { name: 'Mains Question Bank', path: '/mains-questions-master', icon: 'edit_note' },
+
+              { name: 'Mains Test Series', path: '/mains-test-series', icon: 'description' },
+
+              { name: 'Answer Writing', path: '/answer-writing', icon: 'fact_check' },
+
+              { name: 'Mains Resources Directory', path: '/mains-directory-master', icon: 'library_books' },
+
+              { name: 'Mains Meeting', path: '/mains-meeting-admin', icon: 'groups' }
+            ]
+          }
         ]
       },
-      { name: 'Pre Resources Directory', path: '/directory-master', icon: 'library_books' },
-     
-     
+      {
+        name: 'Test Series',
+        path: '',
+        icon: 'edit_note',
+        children: [
+           { name: 'Prelims Test Series', path: '/prelims-test-series', icon: 'description' },
+
+           { name: 'Mains Test Series', path: '/mains-test-series', icon: 'description' }
+           
+         ]
+      },
+
+
+      {
+        name: 'Exam Journey Managment',
+        path: '',
+        icon: 'school',
+        children: [
+           { name: 'Manage Exams', path: '/manage-exams', icon: 'school' },
+
+           { name: 'Manage Programs', path: '/manage-program', icon: 'school' },
+
+           { name: 'Manage Plans', path: '/manage-plans', icon: 'payments' },
+
+            { name: 'Manage Batches', path: '/manage-batches', icon: 'layers' },
+
+            { name: 'Mentorship Plans', path: '/admin-mentorship', icon: 'groups' },
+
+            { name: 'Program FAQs', path: '/program-faqs', icon: 'help' },
+
+            { name: 'Plan Benefits', path: '/support-features', icon: 'support_agent' }
+        ]
+      },
+
+      { name: 'Syllabus Master', path: '/syllabus-master', icon: 'menu_book' },
+
       
-      { name: 'Mentorship Master', path: '', icon: 'school', children: [{ name: 'Programs', path: '/manage-program', icon: 'school' }, { name: 'Mentorship Plans', path: '/admin-mentorship', icon: 'groups' }, { name: 'Program FAQs', path: '/program-faqs', icon: 'help' }] },
-      { name: 'Announcement Master', path: '/announcement-master', icon: 'campaign' },
+      {
+        name: 'Quiz,DemoTest',
+        path: '',
+        icon: 'language',
+        children: [
+           { name: 'Daily Quiz', path: '/quizzes', icon: 'fact_check' },
+
+           { name: 'Demo Test', path: '/demo-test-admin', icon: 'quiz' }
+        ] 
+      },
+
+       { name: 'Study Module', path: '/study-module', icon: 'fact_check' },  
+
+       { name: 'Free Resource', path: '/free-resource-admin', icon: 'inventory_2' }, 
+
+
+     
       { name: 'Push Notifications', path: '/notifications', icon: 'notifications' },
+
       { name: 'Live Exam Monitoring', path: '/exam-monitoring', icon: 'videocam' },
       
       
@@ -119,55 +201,23 @@ const getMenuItems = (user) => {
         path: '',
         icon: 'language',
         children: [
-          { name: 'Testimonials', path: '/testimonials', icon: 'format_quote' },
-          { name: 'Plan Benefits', path: '/support-features', icon: 'support_agent' },
-          { name: 'Manage Exams', path: '/manage-exams', icon: 'school' },
-          { name: 'App Settings', path: '/app-settings', icon: 'phone_android' },
-          { name: 'Manage Plans', path: '/manage-plans', icon: 'payments' },
-          { name: 'Careers', path: '/careers', icon: 'work' },
-          { name: 'Website Quiz', path: '/quizzes', icon: 'fact_check' },
-          { name: 'Simple News', path: '/simple-news-admin', icon: 'newspaper' },
-          { name: 'Manage Program', path: '/manage-program', icon: 'fact_check' },
-          { name: 'Manage Batches', path: '/manage-batches', icon: 'layers' },
-          { name: 'Manage FAQs', path: '/program-faqs', icon: 'help' },
-          { name: 'Syllabus Master', path: '/syllabus-master', icon: 'menu_book' },
-           { name: 'Free Resource', path: '/free-resource-admin', icon: 'inventory_2' }    
+           { name: 'Manage Announcement', path: '/announcement-master', icon: 'campaign' },
+
+           { name: 'Manage News', path: '/simple-news-admin', icon: 'newspaper' },
+
+           { name: 'Live Content', path: '/live-content-admin', icon: 'live_tv' },
+
+           { name: 'Testimonials', path: '/testimonials', icon: 'format_quote' },
+          
+           { name: 'Manage Coupon', path: '/manage-coupon', icon: 'fact_check' },
+
+           { name: 'App Settings', path: '/app-settings', icon: 'phone_android' },
+          
+           { name: 'Careers', path: '/careers', icon: 'work' }
+             
         ] 
       },
-       {
-        name: 'Prelims Section',
-        path: '',
-        icon: 'quiz',
-        children: [
-          { name: 'Prelims Test Series', path: '/prelims-test-series', icon: 'description' },
-           { name: 'Prelims Meeting', path: '/meeting-admin', icon: 'groups' }
-        ]
-      },
-      {
-        name: 'Mains Section',
-        path: '',
-        icon: 'edit_note',
-        children: [
-           { name: 'Mains Test Series', path: '/mains-test-series', icon: 'description' },
-           { name: 'Mains Tag Management', path: '/mains-tag-master', icon: 'local_offer' },
-           { name: 'Mains Question Bank', path: '/mains-questions-master', icon: 'edit_note' },
-           { name: 'Manage Answer Writing', path: '/answer-writing', icon: 'fact_check' },
-           { name: 'Mains Meeting', path: '/mains-meeting-admin', icon: 'groups' },
-           { name: 'Mains Resources Directory', path: '/directory-master', icon: 'library_books' },
-          ]
-      },
      
-      
-      { name: 'Live Content', path: '/live-content-admin', icon: 'live_tv' },
-      { name: 'Demo Test', path: '/demo-test-admin', icon: 'quiz' },
-      
-      { name: 'Manage Coupon', path: '/manage-coupon', icon: 'fact_check' },
-      { name: 'Study Module', path: '/study-module', icon: 'fact_check' },
-
-      { name: 'Manage Program', path: '/manage-program', icon: 'fact_check' },
-      { name: 'Manage Answer Writing', path: '/answer-writing', icon: 'fact_check' },
-      { name: 'Mains Resources Directory', path: '/mains-directory-master', icon: 'library_books' },
-
       
       
       { name: 'Live Tests', path: '/live-test', icon: 'description' },

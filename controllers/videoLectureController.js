@@ -15,7 +15,7 @@ const createFolder = async (req, res) => {
 
     const validCategories = [
       'gs1-videos', 'gs2-videos', 'gs3-videos', 
-      'gs4-videos', 'essay-videos', 'strategy-sessions',
+      'gs4-videos', 'essay-videos', 'qualifying-paper-videos', 'strategy-sessions',
       'current-affairs', 'mock-interviews'
     ];
     
@@ -115,7 +115,7 @@ const createVideo = async (req, res) => {
 
     const validCategories = [
       'gs1-videos', 'gs2-videos', 'gs3-videos', 
-      'gs4-videos', 'essay-videos', 'strategy-sessions',
+      'gs4-videos', 'essay-videos', 'qualifying-paper-videos', 'strategy-sessions',
       'current-affairs', 'mock-interviews'
     ];
     
@@ -230,7 +230,7 @@ const getDirectoryTree = async (req, res) => {
 
     const validCategories = [
       'gs1-videos', 'gs2-videos', 'gs3-videos', 
-      'gs4-videos', 'essay-videos', 'strategy-sessions',
+      'gs4-videos', 'essay-videos', 'qualifying-paper-videos', 'strategy-sessions',
       'current-affairs', 'mock-interviews'
     ];
     
@@ -476,7 +476,7 @@ const getPublicDirectoryTree = async (req, res) => {
 
     const validCategories = [
       'gs1-videos', 'gs2-videos', 'gs3-videos', 
-      'gs4-videos', 'essay-videos', 'strategy-sessions',
+      'gs4-videos', 'essay-videos', 'qualifying-paper-videos', 'strategy-sessions',
       'current-affairs', 'mock-interviews'
     ];
     
@@ -516,6 +516,7 @@ const getVideoCategories = async (req, res) => {
       { value: 'gs3-videos', label: 'GS Papers 3 Videos' },
       { value: 'gs4-videos', label: 'GS Papers 4 Videos' },
       { value: 'essay-videos', label: 'Essay Writing Videos' },
+      { value: 'qualifying-paper-videos', label: 'Qualifying Paper Videos' },
       { value: 'strategy-sessions', label: 'Strategy Sessions' },
       { value: 'current-affairs', label: 'Current Affairs' },
       { value: 'mock-interviews', label: 'Mock Interviews' }

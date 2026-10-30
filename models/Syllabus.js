@@ -79,6 +79,7 @@ const syllabusSchema = new mongoose.Schema({
   },
   mains: {
     essay: documentSchema,
+    qualifying: documentSchema,
     gs1: documentSchema,
     gs2: documentSchema,
     gs3: documentSchema,

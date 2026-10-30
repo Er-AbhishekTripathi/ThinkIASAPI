@@ -119,6 +119,18 @@ const deleteQuestion = async (req, res) => {
   }
 };
 
+const deleteAllQuestions = async (_req, res) => {
+  try {
+    const result = await MainsQuestion.deleteMany({});
+    res.json({
+      deletedCount: result.deletedCount,
+      message: `${result.deletedCount} Mains question${result.deletedCount === 1 ? '' : 's'} deleted successfully.`
+    });
+  } catch (error) {
+    handleError(res, error, 'Failed to delete all Mains questions');
+  }
+};
+
 const importQuestions = async (req, res) => {
   try {
     let questions;
@@ -198,4 +210,4 @@ const importQuestions = async (req, res) => {
   }
 };
 
-module.exports = { getQuestions, createQuestion, updateQuestion, deleteQuestion, importQuestions };
+module.exports = { getQuestions, createQuestion, updateQuestion, deleteQuestion, deleteAllQuestions, importQuestions };

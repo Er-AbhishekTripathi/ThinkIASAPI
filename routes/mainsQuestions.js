@@ -6,6 +6,7 @@ const {
   createQuestion,
   updateQuestion,
   deleteQuestion,
+  deleteAllQuestions,
   importQuestions
 } = require('../controllers/mainsQuestionController');
 const importUpload = require('multer')({
@@ -18,6 +19,7 @@ router.post('/import', importUpload, importQuestions);
 router.get('/', getQuestions);
 router.post('/', createQuestion);
 router.put('/:id', updateQuestion);
+router.delete('/', deleteAllQuestions);
 router.delete('/:id', deleteQuestion);
 
 module.exports = router;

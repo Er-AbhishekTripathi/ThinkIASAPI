@@ -227,6 +227,18 @@ const deleteQuestion = async (req, res) => {
   }
 };
 
+const deleteAllQuestions = async (_req, res) => {
+  try {
+    const result = await Question.deleteMany({});
+    res.json({
+      deletedCount: result.deletedCount,
+      message: `${result.deletedCount} question${result.deletedCount === 1 ? '' : 's'} deleted successfully.`
+    });
+  } catch (error) {
+    handleError(res, error, 'Failed to delete all questions');
+  }
+};
+
 // Get all questions without pagination
 const getAllQuestions = async (req, res) => {
   try {
@@ -259,5 +271,6 @@ module.exports = {
   getQuestionsByTag,
   updateQuestion,
   deleteQuestion,
+  deleteAllQuestions,
   getAllQuestions
 };

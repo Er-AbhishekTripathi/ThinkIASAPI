@@ -7,6 +7,7 @@ const {
   getQuestionsByTag,
   updateQuestion,
   deleteQuestion,
+  deleteAllQuestions,
   getAllQuestions
 } = require('../controllers/questionController');
 const { auth, adminAuth } = require('../middleware/auth');
@@ -26,6 +27,7 @@ router.post('/import-sheet', auth, adminAuth, require('../controllers/questionIm
 
 router.get('/', auth, adminAuth, getQuestions);
 router.get('/all', auth, adminAuth, getAllQuestions);
+router.delete('/', auth, adminAuth, deleteAllQuestions);
 
 router.get('/:uid', auth, adminAuth, getQuestionByUid);
 router.get('/tag/:tagId', auth, adminAuth, getQuestionsByTag);

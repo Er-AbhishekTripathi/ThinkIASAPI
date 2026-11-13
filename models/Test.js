@@ -79,7 +79,9 @@ const testSchema = new mongoose.Schema({
   },
   seriesId: { type: mongoose.Schema.Types.ObjectId, ref: 'TestSeries', default: null, index: true },
   seriesKind: { type: String, enum: ['pre', 'mains'] },
-  slotId: { type: mongoose.Schema.Types.ObjectId, default: null }
+  slotId: { type: mongoose.Schema.Types.ObjectId, default: null },
+  qbankKey: { type: String, default: null, index: true }
+  ,qbankKind: { type: String, enum: ['pre', 'mains'], default: 'pre', index: true }
 }, {
   timestamps: true,
   toJSON: { virtuals: true },

@@ -32,6 +32,7 @@ const getMenuItems = (user) => {
     path: '',
     icon: 'edit_note',
     children: [
+      { name: 'Mains Test', path: '/mains-tests', icon: 'quiz' },
       { name: 'Daily Answer Writing', path: '/student-answer-writing', icon: 'description' },
       { name: 'Daily Answer Evaluation', path: '/mains-results', icon: 'assignment' },
       { name: 'Study Materials', path: '/mains-materials', icon: 'library_books' },

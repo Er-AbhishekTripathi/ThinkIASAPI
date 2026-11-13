@@ -1,14 +1,17 @@
 const express = require('express');
 const TestSeries = require('../models/TestSeries');
 const Test = require('../models/Test');
+const Question = require('../models/Question');
+const MainsQuestion = require('../models/MainsQuestion');
 const Result = require('../models/Result');
 const ExamReopen = require('../models/ExamReopen');
 const User = require('../models/User');
+const mongoose = require('mongoose');
 const { auth, adminAuth } = require('../middleware/auth');
 const { publishSystemNotification } = require('../services/firebaseNotificationService');
 const { examWindow } = require('../utils/examAccess');
 const { slotDateTime, calendarDay, fromIst } = require('../utils/istTime');
-const allowed = ['intro', 'introHi', 'name', 'nameHi', 'description', 'descriptionHi', 'startDate', 'endDate', 'testDates', 'isActive'];
+const allowed = ['intro', 'introHi', 'name', 'nameHi', 'description', 'descriptionHi', 'startDate', 'endDate', 'testDates', 'isActive', 'status'];
 const payload = body => Object.fromEntries(allowed.filter(key => body[key] !== undefined).map(key => [key, body[key]]));
 const slotTime = item => slotDateTime(item);
 const serialize = (item, papers = []) => {
@@ -108,6 +111,33 @@ module.exports = kind => {
       }))
     });
   }));
+  router.get('/:id/slots/:slotId/questions', handle(async (req, res) => {
+    if (req.user.role !== 'admin' && ![kind, 'combo'].includes(req.user.type)) {
+      return res.status(403).json({ success: false, message: 'This test series requires the corresponding plan.' });
+    }
+    const item = await TestSeries.findOne({ _id: req.params.id, kind, isActive: true });
+    if (!item) return res.status(404).json({ success: false, message: 'Test series not found.' });
+    const slot = item.testDates.id(req.params.slotId);
+    if (!slot) return res.status(404).json({ success: false, message: 'Test date not found.' });
+    const exam = await Test.findOne({ seriesId: item._id, slotId: slot._id }).select('questionUids').lean();
+    if (!exam) return res.status(404).json({ success: false, message: 'Test not found for this date.' });
+
+    const questionUids = exam.questionUids || [];
+    const questions = kind === 'mains'
+      ? await MainsQuestion.find({ _id: { $in: questionUids.filter(mongoose.Types.ObjectId.isValid) } }).select('_id question').lean()
+      : await Question.find({ uid: { $in: questionUids } }).select('uid question options').lean();
+    const byUid = new Map(questions.map(question => [
+      String(kind === 'mains' ? question._id : question.uid),
+      {
+        question: question.question,
+        options: (question.options || []).map(option => ({ english: option.english, hindi: option.hindi }))
+      }
+    ]));
+    res.json({
+      success: true,
+      data: questionUids.map(uid => byUid.get(String(uid))).filter(Boolean)
+    });
+  }));
   router.use(adminAuth);
   router.get('/admin', handle(async (req, res) => {
     const page = Math.max(1, Number(req.query.page) || 1), limit = Math.min(100, Math.max(1, Number(req.query.limit) || 10));
@@ -119,8 +149,8 @@ module.exports = kind => {
   }));
   router.post('/', handle(async (req, res) => { const item = await TestSeries.create({ ...payload(req.body), kind, createdBy: req.user._id }); notify(item, req.user); res.status(201).json({ success: true, data: (await withPapers([item]))[0] }); }));
   router.get('/:id', handle(async (req, res) => { const item = await TestSeries.findOne({ _id: req.params.id, kind }); if (!item) return res.status(404).json({ success: false, message: 'Test series not found.' }); res.json({ success: true, data: (await withPapers([item]))[0] }); }));
-  router.put('/:id', handle(async (req, res) => { const item = await TestSeries.findOne({ _id: req.params.id, kind }); if (!item) return res.status(404).json({ success: false, message: 'Test series not found.' }); Object.assign(item, payload(req.body)); await item.save(); notify(item, req.user); res.json({ success: true, data: (await withPapers([item]))[0] }); }));
-  router.patch('/:id/toggle-status', handle(async (req, res) => { const item = await TestSeries.findOne({ _id: req.params.id, kind }); if (!item) return res.status(404).json({ success: false, message: 'Test series not found.' }); item.isActive = !item.isActive; await item.save(); notify(item, req.user); res.json({ success: true, data: serialize(item) }); }));
+  router.put('/:id', handle(async (req, res) => { const item = await TestSeries.findOne({ _id: req.params.id, kind }); if (!item) return res.status(404).json({ success: false, message: 'Test series not found.' }); const changes = payload(req.body); if (changes.status) changes.isActive = changes.status !== 'draft'; Object.assign(item, changes); await item.save(); notify(item, req.user); res.json({ success: true, data: (await withPapers([item]))[0] }); }));
+  router.patch('/:id/toggle-status', handle(async (req, res) => { const item = await TestSeries.findOne({ _id: req.params.id, kind }); if (!item) return res.status(404).json({ success: false, message: 'Test series not found.' }); item.status = item.status === 'live' ? 'draft' : 'live'; item.isActive = item.status === 'live'; await item.save(); notify(item, req.user); res.json({ success: true, data: serialize(item) }); }));
   router.delete('/:id', handle(async (req, res) => { const item = await TestSeries.findOneAndDelete({ _id: req.params.id, kind }); if (!item) return res.status(404).json({ success: false, message: 'Test series not found.' }); await Test.deleteMany({ seriesId: item._id }); res.json({ success: true }); }));
   router.post('/:id/slots/:slotId/exam', handle(async (req, res) => {
     const item = await TestSeries.findOne({ _id: req.params.id, kind });
@@ -136,7 +166,7 @@ module.exports = kind => {
       startTime, endTime,
       duration: req.body.duration || slot.duration,
       marksPerQuestion: req.body.marksPerQuestion ?? 2,
-      negativeMarks: req.body.negativeMarks ?? 0.66,
+      negativeMarks: kind === 'mains' ? 0 : (req.body.negativeMarks ?? 0.66),
       questionUids: req.body.questionUids || [],
       introPage: req.body.introPage || '',
       isActive: req.body.isActive !== false,

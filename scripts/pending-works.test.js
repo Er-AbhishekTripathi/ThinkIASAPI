@@ -8,7 +8,7 @@ const Plan = require('../models/Plan');
 const Payment = require('../models/Payment');
 const Program = require('../models/Program');
 const { applyPaymentAccess } = require('../utils/paymentEnrollment');
-const { inactiveAccount } = require('../utils/accountStatus');
+const { inactiveAccount, blockedAccount } = require('../utils/accountStatus');
 function load(file, dependencies) {
   const module = { exports: {} };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '..', file), 'utf8'), {
@@ -63,7 +63,7 @@ test('inactive student receives the exact popup response and no token; active le
   let user = { _id:'student',role:'student',type:'pre',isActive:false,comparePassword:async()=>true,toJSON(){return this;} };
   let issued=0;
   const auth=load('controllers/authController.js', {
-    '../models/User': {findOne:async()=>user}, '../services/emailService': {},
+    '../models/User': {findOne:async()=>user}, '../utils/loginAccount': {findLoginUser:async()=>user}, '../services/emailService': {},
     '../utils/helpers': {generateToken:()=>{issued++;return 'token';},getMenuItems:()=>[]}
   });
   const denied=response();await auth.login({body:{email:'student@example.com',password:'secret'}},denied);
@@ -72,10 +72,26 @@ test('inactive student receives the exact popup response and no token; active le
   const allowed=response();await auth.login({body:{email:'student@example.com',password:'secret'}},allowed);
   assert.equal(allowed.code,200);assert.equal(allowed.body.token,'token');assert.equal(issued,1);
 });
+test('blocked student receives a clear login message and no token', async () => {
+  let issued=0;
+  const auth=load('controllers/authController.js', {
+    '../models/User': {},
+    '../utils/loginAccount': {findLoginUser:async()=>({_id:'student',role:'student',isBlocked:true,comparePassword:async()=>true})},
+    '../services/emailService': {},
+    '../utils/helpers': {generateToken:()=>{issued++;return 'token';},getMenuItems:()=>[]}
+  });
+  const denied=response();await auth.login({body:{email:'student@example.com',password:'secret'}},denied);
+  assert.equal(denied.code,403);assert.deepEqual(denied.body,blockedAccount);assert.equal(issued,0);
+});
 test('deactivation revokes access through an existing valid token', async () => {
   const auth=load('middleware/auth.js', {'jsonwebtoken':{verify:()=>({userId:'student'})},'../models/User':{findById:()=>({select:async()=>({isActive:false})})}}).auth;
   const res=response();let called=false;await auth({header:()=> 'Bearer valid'},res,()=>called=true);
   assert.equal(res.code,403);assert.equal(res.body.code,'ACCOUNT_INACTIVE');assert.equal(called,false);
+});
+test('blocking revokes access through an existing valid token', async () => {
+  const auth=load('middleware/auth.js', {'jsonwebtoken':{verify:()=>({userId:'student'})},'../models/User':{findById:()=>({select:async()=>({isBlocked:true})})}}).auth;
+  const res=response();let called=false;await auth({header:()=> '******'},res,()=>called=true);
+  assert.equal(res.code,403);assert.equal(res.body.code,'ACCOUNT_BLOCKED');assert.equal(res.body.message,blockedAccount.message);assert.equal(called,false);
 });
 test('custom plans retain a separate validated access type in the payment snapshot', async () => {
   const plan=new Plan({id:'mains-2027',accessType:'mains',name:'Mains 2027',baseAmount:999,totalAmount:999});await plan.validate();

@@ -13,10 +13,14 @@ const getTests = async (req, res) => {
     if (req.user.role === 'admin') {
       tests = await TestService.getAllActiveTests();
     } else {
-      if (!canAccessPlan(req.user.type, 'pre')) {
-        return res.status(403).json({ success: false, message: 'An active Prelims plan is required.' });
+      const kind = req.query.kind === 'mains' ? 'mains' : 'pre';
+      if (!canAccessPlan(req.user.type, kind)) {
+        const message = kind === 'mains' ? 'An active Mains plan is required.' : 'An active Prelims plan is required.';
+        return res.status(403).json({ success: false, message });
       }
-      tests = await TestService.getAvailableTestsForStudent(req.user._id);
+      tests = kind === 'mains'
+        ? await TestService.getAvailableMainsTestsForStudent(req.user._id)
+        : await TestService.getAvailableTestsForStudent(req.user._id);
       
       // Check submission status for each test
       const testsWithSubmissionStatus = await Promise.all(

@@ -48,6 +48,7 @@ const userSchema = new mongoose.Schema({
   deletedAt: Date,
   deletionReason: String,
   isActive: { type: Boolean, default: true },
+  isBlocked: { type: Boolean, default: false },
   purchasedPlanId: String,
   programId: { type: mongoose.Schema.Types.ObjectId, ref: 'Program' },
   batchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Batch' },

@@ -57,6 +57,10 @@ class TestService {
   const reopenIds = new Set(reopens.map(item => String(item.test)));
   const tests = await Test.find({
     isActive: true,
+    $or: [
+      { qbankKind: 'pre' },
+      { qbankKind: { $exists: false } }
+    ],
     $and: [
       { $or: [{ endTime: { $gt: now } }, { _id: { $in: reopens.map(item => item.test) } }] },
       { $or: [{ seriesId: null }, { seriesId: { $exists: false } }] }
@@ -183,6 +187,27 @@ class TestService {
       })
       .populate('createdBy', 'fullName email')
       .exec();
+  }
+
+  static async getAvailableMainsTestsForStudent(userId) {
+      const now = new Date();
+      const ExamReopen = require('../models/ExamReopen');
+      const reopens = userId ? await ExamReopen.find({ user: userId, until: { $gte: now } }).select('test') : [];
+      return Test.find({
+        isActive: true,
+        qbankKind: 'mains',
+        $and: [
+          { $or: [{ endTime: { $gt: now } }, { _id: { $in: reopens.map(item => item.test) } }] },
+          { $or: [{ seriesId: null }, { seriesId: { $exists: false } }] }
+        ]
+      })
+        .populate({
+          path: 'questions',
+          select: '_id question uid',
+          match: { isActive: true }
+        })
+        .sort({ startTime: 1 })
+        .exec();
   }
 }
 

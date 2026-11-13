@@ -186,6 +186,14 @@ static async submitQuiz(quizId, submissionData) {
       .sort({ submittedAt: -1 });
   }
 
+  static async getAllQuizSubmissions() {
+    return await QuizSubmission.find()
+      .select('quiz name email phone score totalQuestions correctAnswers submittedAt')
+      .populate('quiz', 'title')
+      .sort({ submittedAt: -1 })
+      .lean();
+  }
+
   static async getAllQuizzes() {
     return await Quiz.find()
       .populate('createdBy', 'fullName email')

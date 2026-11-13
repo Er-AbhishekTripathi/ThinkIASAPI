@@ -7,6 +7,7 @@ const schema = new mongoose.Schema({
   startDate: { type: Date, required: true }, endDate: { type: Date, required: true },
   testDates: [{ date: { type: Date, required: true }, time: { type: String, default: '09:00', match: /^([01]\d|2[0-3]):[0-5]\d$/ }, duration: { type: Number, min: 1, max: 1440, required: true } }],
   isActive: { type: Boolean, default: true },
+  status: { type: String, enum: ['draft', 'scheduled', 'live', 'completed'], default: 'live' },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
 }, { timestamps: true });
 schema.pre('validate', function(next) {

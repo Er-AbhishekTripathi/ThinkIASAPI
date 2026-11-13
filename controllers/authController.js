@@ -516,6 +516,7 @@ const login = async (req, res) => {
       return res.status(400).json({ message: messages.en.invalidCredentials });
     }
 
+    if (user.isBlocked === true) return res.status(403).json(require('../utils/accountStatus').blockedAccount);
     if (user.isActive === false) return res.status(403).json(require('../utils/accountStatus').inactiveAccount);
 
     const token = generateToken(user._id);

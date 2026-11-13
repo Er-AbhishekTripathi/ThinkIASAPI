@@ -187,7 +187,7 @@ const getDashboardCharts = async (req, res) => {
 const getStudents = async (req, res) => {
   try {
     const students = await User.find({ role: 'student' })
-      .select('isActive fullName email phone type planActivatedAt planExpiryAt createdAt updatedAt')
+      .select('isActive isBlocked fullName email phone type planActivatedAt planExpiryAt createdAt updatedAt')
       .sort({ createdAt: -1 });
     
     res.json(students);

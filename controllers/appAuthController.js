@@ -5,7 +5,7 @@ const User = require('../models/User');
 const Challenge = require('../models/AppAuthChallenge');
 const Session = require('../models/AppAuthSession');
 const {JWT} = require('../config/constants');
-const {inactiveAccount} = require('../utils/accountStatus');
+const {inactiveAccount,blockedAccount} = require('../utils/accountStatus');
 const {loginQuery} = require('../utils/loginAccount');
 const {profile}=require('../utils/appApi');
 
@@ -40,6 +40,7 @@ async function issue(email, purpose) {
 async function student(email) {
   const user = await findLoginUser(email);
   if (!user || user.role !== 'student') throw error(404,'No student account found with this email.','ACCOUNT_NOT_FOUND');
+  if (user.isBlocked === true) throw error(403,blockedAccount.message,'ACCOUNT_BLOCKED');
   if (user.isActive === false) throw error(403,inactiveAccount.message,'ACCOUNT_INACTIVE');
   return user;
 }
@@ -100,6 +101,7 @@ exports.register = handle(async (req,res) => {
 exports.login = handle(async (req,res) => {
   const user = await findLoginUser(req.body.email);
   if (!user || user.role !== 'student' || !await user.comparePassword(req.body.password)) throw error(401,'Invalid email or password.','INVALID_CREDENTIALS');
+  if (user.isBlocked === true) throw error(403,blockedAccount.message,'ACCOUNT_BLOCKED');
   if (user.isActive === false) throw error(403,inactiveAccount.message,'ACCOUNT_INACTIVE');
   await sessionResponse(res,user,200,req);
 });

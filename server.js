@@ -52,7 +52,14 @@ connectDB();
 
 // app.options('*', cors());
 
-app.use(cors());
+app.use(cors({
+  origin(origin, callback) {
+    callback(null, origin || true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 app.use(express.json({limit: '10mb'})); // Increase limit for file uploads
 app.use(express.urlencoded({ extended: true }));
@@ -90,6 +97,7 @@ app.use('/api/support-tickets', require('./routes/supportTickets'));
 
 // Add this to your server.js routes
 app.use('/api/questions', require('./routes/questions'));
+app.use('/api/qbank', require('./routes/qbank'));
 
 app.use('/api/pdf', require('./routes/pdf'));
 app.use('/api/directories', require('./routes/directory')); // Added directory routes

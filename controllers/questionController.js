@@ -1,5 +1,7 @@
 const Question = require('../models/Question');
 const { handleError } = require('../middleware/errorHandler');
+const Test = require('../models/Test');
+const TestSeries = require('../models/TestSeries');
 
 // Create multiple questions
 const createQuestions = async (req, res) => {
@@ -65,9 +67,29 @@ const getQuestions = async (req, res) => {
 
     console.log(`✅ Found ${questions.length} of ${total} total questions`);
 
+    const usagePapers = await Test.find({ questionUids: { $in: questions.map(question => String(question.uid)) } })
+      .select('questionUids seriesId title')
+      .lean();
+    const seriesIds = [...new Set(usagePapers.map(paper => String(paper.seriesId)).filter(Boolean))];
+    const seriesRows = await TestSeries.find({ _id: { $in: seriesIds } }).select('name').lean();
+    const seriesNames = new Map(seriesRows.map(series => [String(series._id), series.name]));
+    const usageByQuestion = new Map();
+    usagePapers.forEach(paper => {
+      const label = seriesNames.get(String(paper.seriesId)) || paper.title || 'Test';
+      (paper.questionUids || []).forEach(uid => {
+        const key = String(uid);
+        if (!usageByQuestion.has(key)) usageByQuestion.set(key, new Set());
+        usageByQuestion.get(key).add(label);
+      });
+    });
+    const enrichedQuestions = questions.map(question => {
+      const usedIn = [...(usageByQuestion.get(String(question.uid)) || [])];
+      return { ...question.toObject(), usageCount: usedIn.length, usedIn };
+    });
+
     res.setHeader('Cache-Control', 'no-cache');
     res.json({
-      questions,
+      questions: enrichedQuestions,
       pagination: {
         currentPage: pageNum,
         totalPages,

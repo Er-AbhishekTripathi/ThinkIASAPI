@@ -207,6 +207,15 @@ const getQuizSubmissions = async (req, res) => {
   }
 };
 
+const getAllQuizSubmissions = async (req, res) => {
+  try {
+    const submissions = await QuizService.getAllQuizSubmissions();
+    res.json(submissions);
+  } catch (error) {
+    handleError(res, error, 'Failed to get all quiz submissions');
+  }
+};
+
 // Export all functions
 module.exports = {
   createQuiz,
@@ -218,5 +227,6 @@ module.exports = {
   submitQuiz,
   getQuizLeaderboard,
   checkQuizAvailability,
-  getQuizSubmissions
+  getQuizSubmissions,
+  getAllQuizSubmissions
 };

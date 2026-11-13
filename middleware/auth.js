@@ -10,7 +10,7 @@ const optionalAuth = async (req, res, next) => {
     const decoded = jwt.verify(token, JWT.SECRET);
     const userId = decoded.userId || decoded.id;
     const user = await User.findById(userId).select('-password');
-    if (user && user.isActive !== false) req.user = user;
+    if (user && user.isActive !== false && user.isBlocked !== true) req.user = user;
   } catch (_) {}
   next();
 };
@@ -45,6 +45,7 @@ const auth = async (req, res, next) => {
       return res.status(401).json({success:false,message:'Password changed. Please log in again.'});
     }
 
+    if (user.isBlocked === true) return res.status(403).json(require('../utils/accountStatus').blockedAccount);
     if (user.isActive === false) return res.status(403).json(require('../utils/accountStatus').inactiveAccount);
     req.user = user;
     next();

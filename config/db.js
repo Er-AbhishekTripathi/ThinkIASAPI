@@ -1,4 +1,15 @@
+const dns = require('dns');
 const mongoose = require('mongoose');
+
+try {
+  const servers = dns.getServers();
+  dns.setServers(['8.8.8.8', '1.1.1.1', ...servers.filter((server) => server !== '8.8.8.8' && server !== '1.1.1.1')]);
+} catch (error) {
+  console.error('Unable to update DNS servers for MongoDB SRV lookup:', error.message);
+}
+if (typeof dns.setDefaultResultOrder === 'function') {
+  dns.setDefaultResultOrder('ipv4first');
+}
 
 const connectDB = async () => {
   const uri = process.env.MONGO_URL;
@@ -9,7 +20,7 @@ const connectDB = async () => {
 
   const tryConnect = async () => {
     try {
-      await mongoose.connect(uri, { serverSelectionTimeoutMS: 10000 });
+      await mongoose.connect(uri, { serverSelectionTimeoutMS: 10000, family: 4 });
       console.log('MongoDB Atlas Connected');
     } catch (error) {
       console.error('MongoDB Connection Failed:', error.message);

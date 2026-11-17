@@ -74,7 +74,24 @@ const getMenuItems = (user) => {
     children: subjects.map((subject) => ({ name: subject, path: '', icon: 'menu_book', children }))
   });
   const optionalMentorshipGroup = subjectGroup('Optional Mentorship Course', optionalSubjects, mainsTrackChildren);
-  const optionalSeriesGroup = subjectGroup('Optional Test Series', optionalSubjects, mainsSeriesGroup.children);
+  const optionalSeriesGroup = {
+    name: 'Optional Test Series',
+    path: '',
+    icon: 'menu_book',
+    children: optionalSubjects.map((subject) => ({
+      name: subject,
+      path: '',
+      icon: 'menu_book',
+      children: [
+        { name: 'Tests', path: `/mains-test-series?subject=${encodeURIComponent(subject)}`, icon: 'event_note' },
+        { name: 'Answer Writing', path: '/student-answer-writing', icon: 'description' },
+        { name: 'Answer Evaluation', path: '/mains-results', icon: 'assignment' },
+        { name: 'Study Materials', path: '/mains-materials', icon: 'library_books' },
+        { name: 'Mentorship Sessions', path: '/mains-session', icon: 'groups' },
+        { name: 'Live Test', path: '/live-test', icon: 'description' }
+      ]
+    }))
+  };
   const essayGroup = { name: 'Essay', path: '', icon: 'edit_note', children: mainsTrackChildren };
   const qualifyingGroup = subjectGroup('Qualifying Papers', qualifyingPapers, mainsTrackChildren);
   const liveClassesMenu = {
@@ -105,10 +122,6 @@ const getMenuItems = (user) => {
             path: '',
             icon: 'quiz',
             children: [
-              { name: 'Tag Management', path: '/tag-master', icon: 'local_offer' },
-
-              { name: 'Question Bank', path: '/questions-master', icon: 'quiz' },
-
               { name: 'Manage Tests', path: '/manage-tests', icon: 'settings' },
 
               { name: 'Results & Analytics', path: '/admin-results', icon: 'analytics' },
@@ -123,10 +136,6 @@ const getMenuItems = (user) => {
             path: '',
             icon: 'edit_note',
             children: [
-              { name: 'Mains Tag Management', path: '/mains-tag-master', icon: 'local_offer' },
-
-              { name: 'Mains Question Bank', path: '/mains-questions-master', icon: 'edit_note' },
-
               { name: 'Mains Test Series', path: '/mains-test-series', icon: 'description' },
 
               { name: 'Answer Writing', path: '/answer-writing', icon: 'fact_check' },
@@ -352,7 +361,11 @@ const formatTestForStudent = (test) => ({
   status: test.status,
   introPage: test.introPage,
   introPageHi: test.introPageHi,
-  introFontSize: test.introFontSize
+  introFontSize: test.introFontSize,
+  examName: test.examName || '',
+  paper: test.paper || '',
+  subject: test.subject || '',
+  qbankKind: test.qbankKind
 });
 
 module.exports = {

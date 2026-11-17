@@ -26,6 +26,42 @@ const parseScheduleEnd = (date, startTime, duration, status) => {
   return new Date(startTime.getTime() + duration * 60000);
 };
 
+router.get('/questions', async (req, res, next) => {
+  try {
+    const saved = await QbankState.findOne().sort({ updatedAt: -1 });
+    const questions = Array.isArray(saved?.state?.questions) ? saved.state.questions : [];
+    const exam = String(req.query.exam || '').trim().toLowerCase();
+    const mapped = questions
+      .filter((question) => question && !question.deleted && question.id)
+      .filter((question) => !exam || String(question.exam || '').trim().toLowerCase() === exam)
+      .map((question) => {
+        const englishOptions = Array.isArray(question.options) ? question.options : [];
+        const hindiOptions = Array.isArray(question.hiOptions) ? question.hiOptions : [];
+        return {
+          _id: String(question.id),
+          uid: String(question.id),
+          exam: question.exam || '',
+          subject: question.subject || '',
+          paper: question.paper || '',
+          kind: question.kind || '',
+          question: { english: String(question.en || ''), hindi: String(question.hi || '') },
+          description: { english: String(question.explanation || ''), hindi: '' },
+          options: [0, 1, 2, 3].map((index) => ({
+            english: String(typeof englishOptions[index] === 'string' ? englishOptions[index] : (englishOptions[index]?.en || '')),
+            hindi: String(typeof hindiOptions[index] === 'string' ? hindiOptions[index] : (hindiOptions[index]?.hi || ''))
+          })),
+          correctAnswer: Number(question.correct) || 0,
+          tags: [question.exam, question.subject, question.paper, question.kind].filter(Boolean),
+          isActive: true
+        };
+      });
+    const exams = [...new Set(questions.map((question) => String(question.exam || '').trim()).filter(Boolean))];
+    res.json({ questions: mapped, exams });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get('/state', async (req, res, next) => {
   try {
     const saved = await QbankState.findOne().sort({ updatedAt: -1 });
@@ -100,7 +136,10 @@ router.put('/state', async (req, res, next) => {
         isActive: true,
         createdBy: admin._id,
         qbankKey,
-        qbankKind
+        qbankKind,
+        examName: String(item.exam || item.examName || ''),
+        paper: String(item.paper || ''),
+        subject: String(item.subject || item.paper || '')
       };
 
       await Test.findOneAndUpdate({ qbankKey }, payload, { upsert: true, new: true, runValidators: true });

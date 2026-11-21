@@ -62,6 +62,9 @@ const getTestById = async (req, res) => {
       }
       const test = await TestService.getTestById(req.params.id, { populateQuestions: true });
       if (!test) return res.status(404).json({ message: messages.en.testNotFound });
+      if (!await TestService.isStudentTestVisible(test)) {
+        return res.status(404).json({ message: messages.en.testNotFound });
+      }
       const existingResult = await ResultService.getStudentTestResult(req.params.id, req.user._id);
       const reopen = await activeReopen(req.params.id, req.user._id);
       const window = examWindow(test, reopen);
@@ -96,6 +99,10 @@ const submitTest = async (req, res) => {
   try {
     if (!canAccessPlan(req.user.type, 'pre')) {
       return res.status(403).json({ success: false, message: 'An active Prelims plan is required.' });
+    }
+    const test = await TestService.getTestById(req.params.id);
+    if (!await TestService.isStudentTestVisible(test)) {
+      return res.status(404).json({ message: messages.en.testNotFound });
     }
     const { answers, timeTaken } = req.body;
     
@@ -132,6 +139,9 @@ const checkTestAvailability = async (req, res) => {
   try {
     const test = await TestService.getTestById(req.params.id);
     if (!test) {
+      return res.status(404).json({ message: messages.en.testNotFound });
+    }
+    if (req.user.role === 'student' && !await TestService.isStudentTestVisible(test)) {
       return res.status(404).json({ message: messages.en.testNotFound });
     }
 

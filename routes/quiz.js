@@ -11,7 +11,8 @@ const {
   deleteQuiz,
   toggleQuizActive,
   getQuizSubmissions,
-  getAllQuizSubmissions
+  getAllQuizSubmissions,
+  getQuizSubmissionDetails
 } = require('../controllers/quizController');
 const { auth, studentAuth, adminAuth } = require('../middleware/auth');
 const { apiLimiter } = require('../middleware/rateLimiter');
@@ -33,6 +34,7 @@ router.put('/admin/:id', auth, adminAuth, updateQuiz);
 router.delete('/delete/:id', auth, adminAuth, deleteQuiz);
 router.patch('/admin/:id/toggle-active', auth, adminAuth, toggleQuizActive);
 router.get('/admin/submissions', auth, adminAuth, getAllQuizSubmissions);
+router.get('/admin/submissions/:submissionId', auth, adminAuth, getQuizSubmissionDetails);
 router.get('/admin/:id/submissions', auth, adminAuth, getQuizSubmissions);
 
 // Backward compatibility for older clients

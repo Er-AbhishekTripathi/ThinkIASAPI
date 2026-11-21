@@ -1,0 +1,1 @@
+import{a}from"./chunk-UKRAMMAT.js";import{ja as t,xb as i}from"./chunk-33URO3RH.js";var p=class n{language=t(a);transform(r,e){return this.language.content(r,e)}static \u0275fac=function(e){return new(e||n)};static \u0275pipe=i({name:"t",type:n,pure:!1})};export{p as a};

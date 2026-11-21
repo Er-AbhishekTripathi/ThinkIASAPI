@@ -1,8 +1,35 @@
 const Test = require('../models/Test');
 const Result = require('../models/Result');
 const Question = require('../models/Question');
+const QbankState = require('../models/QbankState');
 
 class TestService {
+  static async getQbankTestVisibility() {
+    const savedState = await QbankState.findOne().sort({ updatedAt: -1 }).select('state.tests').lean();
+    const tests = savedState?.state?.tests;
+    if (!Array.isArray(tests)) return new Map();
+
+    return new Map(tests.map(test => {
+      const key = String(test._id || test.id || test.key || '');
+      return [key, String(test.status || 'live').toLowerCase() === 'live'];
+    }).filter(([key]) => key));
+  }
+
+  static async isStudentTestVisible(test) {
+    if (!test?.isActive) return false;
+    if (!test.qbankKey) return true;
+
+    const visibility = await this.getQbankTestVisibility();
+    return visibility.get(String(test.qbankKey)) === true;
+  }
+
+  static async filterDraftQbankTests(tests) {
+    const visibility = await this.getQbankTestVisibility();
+    return tests.filter(test =>
+      !test.qbankKey || visibility.get(String(test.qbankKey)) === true
+    );
+  }
+
   static async createTest(testData) {
   // Validate endTime is after startTime
   if (testData.startTime && testData.endTime) {
@@ -74,7 +101,8 @@ class TestService {
     .sort({ startTime: 1 })
     .exec();
 
-  return tests.filter(test => new Date(test.endTime) > now || reopenIds.has(String(test._id)));
+  const visibleTests = await this.filterDraftQbankTests(tests);
+  return visibleTests.filter(test => new Date(test.endTime) > now || reopenIds.has(String(test._id)));
 }
 
   static async getTestWithValidation(testId, userId, userRole) {
@@ -193,7 +221,7 @@ class TestService {
       const now = new Date();
       const ExamReopen = require('../models/ExamReopen');
       const reopens = userId ? await ExamReopen.find({ user: userId, until: { $gte: now } }).select('test') : [];
-      return Test.find({
+      const tests = await Test.find({
         isActive: true,
         qbankKind: 'mains',
         $and: [
@@ -208,6 +236,7 @@ class TestService {
         })
         .sort({ startTime: 1 })
         .exec();
+      return this.filterDraftQbankTests(tests);
   }
 }
 

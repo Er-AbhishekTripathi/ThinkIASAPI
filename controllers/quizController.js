@@ -216,6 +216,19 @@ const getAllQuizSubmissions = async (req, res) => {
   }
 };
 
+const getQuizSubmissionDetails = async (req, res) => {
+  try {
+    const submission = await QuizService.getQuizSubmissionById(req.params.submissionId);
+    if (!submission) {
+      return res.status(404).json({ message: 'Quiz submission not found' });
+    }
+
+    res.json(submission);
+  } catch (error) {
+    handleError(res, error, 'Failed to get quiz submission details');
+  }
+};
+
 // Export all functions
 module.exports = {
   createQuiz,
@@ -228,5 +241,6 @@ module.exports = {
   getQuizLeaderboard,
   checkQuizAvailability,
   getQuizSubmissions,
-  getAllQuizSubmissions
+  getAllQuizSubmissions,
+  getQuizSubmissionDetails
 };

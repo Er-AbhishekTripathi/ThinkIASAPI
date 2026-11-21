@@ -6,6 +6,7 @@ const MainsQuestion = require('../models/MainsQuestion');
 const SupportTicket = require('../models/SupportTicket');
 const QuizSubmission = require('../models/QuizSubmission');
 const DemoResult = require('../models/DemoResult');
+const QbankState = require('../models/QbankState');
 
 const withExistingTest = () => [
   {
@@ -85,12 +86,11 @@ class AnalyticsService {
 
   static async getPlatformStatistics() {
     const since24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const [totalTests, totalStudents, resultCounts, prelimsTests, mainsTests, prelimsQuestions, mainsQuestions, newSupportRequests, openSupportRequests, quizAttempts, recentQuizAttempts, demoAttempts, recentDemoAttempts] = await Promise.all([
-      Test.countDocuments({ isDeleted: { $ne: true } }),
+    const [totalTests, totalStudents, resultCounts, qbankState, prelimsQuestions, mainsQuestions, newSupportRequests, openSupportRequests, quizAttempts, recentQuizAttempts, demoAttempts, recentDemoAttempts] = await Promise.all([
+      Test.countDocuments({ isDeleted: { $ne: true }, seriesId: { $in: [null, undefined] } }),
       User.countDocuments({ role: 'student' }),
       Result.aggregate([...withExistingTest(), { $count: 'count' }]),
-      Test.countDocuments({ isDeleted: { $ne: true }, seriesKind: 'pre' }),
-      Test.countDocuments({ isDeleted: { $ne: true }, seriesKind: 'mains' }),
+      QbankState.findOne().sort({ updatedAt: -1 }).select('state.tests').lean(),
       Question.countDocuments({}),
       MainsQuestion.countDocuments({}),
       SupportTicket.countDocuments({ createdAt: { $gte: since24Hours } }),
@@ -101,6 +101,16 @@ class AnalyticsService {
       DemoResult.countDocuments({ submittedAt: { $gte: since24Hours } })
     ]);
     const totalResults = resultCounts[0]?.count || 0;
+    const qbankTests = Array.isArray(qbankState?.state?.tests) ? qbankState.state.tests : [];
+    const visibleQbankTests = qbankTests.filter(test =>
+      test && !test.deleted && String(test.status || 'live').toLowerCase() !== 'draft'
+    );
+    const prelimsTests = visibleQbankTests.filter(test =>
+      String(test.kind || 'PRELIMS').toUpperCase() === 'PRELIMS'
+    ).length;
+    const mainsTests = visibleQbankTests.filter(test =>
+      String(test.kind || '').toUpperCase() === 'MAINS'
+    ).length;
 
     const recentResults = await Result.aggregate([
       ...withExistingTest(),
@@ -184,7 +194,7 @@ class AnalyticsService {
   // Aggregated payload for admin dashboard graphs (avoids sending full tests/results to the client)
   static async getDashboardCharts() {
     const [totalTests, totalStudents, resultCounts] = await Promise.all([
-      Test.countDocuments({ isDeleted: { $ne: true } }),
+      Test.countDocuments({ isDeleted: { $ne: true }, seriesId: { $in: [null, undefined] } }),
       User.countDocuments({ role: 'student' }),
       Result.aggregate([...withExistingTest(), { $count: 'count' }])
     ]);

@@ -194,6 +194,12 @@ static async submitQuiz(quizId, submissionData) {
       .lean();
   }
 
+  static async getQuizSubmissionById(submissionId) {
+    return await QuizSubmission.findById(submissionId)
+      .populate('quiz', 'title description')
+      .lean();
+  }
+
   static async getAllQuizzes() {
     return await Quiz.find()
       .populate('createdBy', 'fullName email')

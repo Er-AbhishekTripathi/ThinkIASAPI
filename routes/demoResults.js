@@ -5,7 +5,9 @@ const {
   getStudentDemoTestResult, 
   getDemoResultById, 
   getStudentDemoResultsByAdmin, 
-  getStudentDemoTestResultByAdmin 
+  getStudentDemoTestResultByAdmin,
+  getDemoTestResultsByAdmin,
+  getAllDemoResultsByAdmin
 } = require('../controllers/demoResultController');
 const { auth, studentAuth, adminAuth } = require('../middleware/auth');
 const { apiLimiter } = require('../middleware/rateLimiter');
@@ -18,6 +20,8 @@ router.get('/student/test/:testId', studentAuth, getStudentDemoTestResult);
 router.get('/:id', getDemoResultById);
 
 // Admin routes
+router.get('/admin/results', adminAuth, getAllDemoResultsByAdmin);
+router.get('/admin/test/:testId/results', adminAuth, getDemoTestResultsByAdmin);
 router.get('/student/admin/:studentId', adminAuth, getStudentDemoResultsByAdmin);
 router.get('/admin/test/:testId/student/:studentId', adminAuth, getStudentDemoTestResultByAdmin);
 

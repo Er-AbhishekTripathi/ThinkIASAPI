@@ -6,13 +6,22 @@ test('dashboard counts exclude results linked to deleted tests',async()=>{
  const module={exports:{}};
  const query={populate(){return this;},sort(){return this;},limit:async()=>[{student:null,test:null,score:5,totalMarks:10}]};
  const models={
-    '../models/Test':{collection:{name:'tests'},countDocuments:async filter=>{if(filter.isDeleted)assert.equal(filter.isDeleted.$ne,true);return filter.seriesKind==='pre'?4:filter.seriesKind==='mains'?5:12;}},
+    '../models/Test':{collection:{name:'tests'},countDocuments:async filter=>{
+     if(filter.isDeleted)assert.equal(filter.isDeleted.$ne,true);
+     if(filter.seriesKind==='pre'||filter.seriesKind==='mains')assert.ok(filter.seriesId);
+     return filter.seriesKind==='pre'||filter.$or?.some(condition=>condition.seriesKind==='pre')?4:
+            filter.seriesKind==='mains'?5:12;
+    }},
   '../models/User':{collection:{name:'users'},countDocuments:async filter=>{assert.deepEqual(filter.role,'student');return 34;}},
   '../models/Question':{countDocuments:async()=>56},
   '../models/MainsQuestion':{countDocuments:async()=>21},
   '../models/SupportTicket':{countDocuments:async filter=>filter.status?9:2},
   '../models/QuizSubmission':{countDocuments:async filter=>filter.submittedAt?2:8},
   '../models/DemoResult':{countDocuments:async filter=>filter.submittedAt?3:7},
+  '../models/QbankState':{findOne:()=>({sort(){return this;},select(){return this;},lean:async()=>({state:{tests:[
+   ...Array.from({length:4},()=>({kind:'PRELIMS',status:'live'})),
+   ...Array.from({length:5},()=>({kind:'MAINS',status:'live'}))
+  ]}})})},
     '../models/Result':{aggregate:async pipeline=>{
      assert.ok(pipeline.some(stage=>stage.$lookup?.from==='tests'));
      assert.ok(pipeline.some(stage=>stage.$unwind==='$linkedTest'));

@@ -164,8 +164,15 @@ class DemoResultService {
 
   static async getTestResults(testId) {
     return await DemoResult.find({ test: testId })
-      .populate('student', 'fullName email')
+      .populate('student', 'fullName email phone')
       .sort({ score: -1, submittedAt: 1 });
+  }
+
+  static async getAllResults() {
+    return await DemoResult.find()
+      .populate('test', 'title duration questionUids')
+      .populate('student', 'fullName email phone')
+      .sort({ submittedAt: -1 });
   }
 
  static async getStudentDemoTestResult(testId, studentId) {

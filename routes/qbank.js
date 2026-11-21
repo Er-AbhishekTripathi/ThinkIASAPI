@@ -97,7 +97,7 @@ router.put('/state', async (req, res, next) => {
         questionUids: questionIds.map(questionUid).filter(Boolean),
         introPage: String(item.intro || item.introPage || ''),
         introPageHi: String(item.introHi || item.introPageHi || ''),
-        isActive: true,
+        isActive: String(item.status || 'live').toLowerCase() === 'live',
         createdBy: admin._id,
         qbankKey,
         qbankKind

@@ -1,1 +1,0 @@
-import{a as o}from"./chunk-NNH2MXZ3.js";import{da as i,ia as r,rd as e}from"./chunk-33URO3RH.js";var n=class t{constructor(p){this.http=p}apiUrl=`${o.apiUrl}/support-features/public`;getPublic(){return this.http.get(this.apiUrl)}static \u0275fac=function(s){return new(s||t)(r(e))};static \u0275prov=i({token:t,factory:t.\u0275fac,providedIn:"root"})};export{n as a};

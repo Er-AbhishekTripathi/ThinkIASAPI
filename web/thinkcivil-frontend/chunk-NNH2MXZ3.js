@@ -1,1 +1,0 @@
-var e={baseUrl:"https://bytestech.online",iUrl:"https://bytestech.online/api",apiUrl:"https://bytestech.online/api",firebase:{apiKey:"",authDomain:"",projectId:"",storageBucket:"",messagingSenderId:"",appId:""},firebaseVapidKey:"",appVersion:"1.0.0"};export{e as a};

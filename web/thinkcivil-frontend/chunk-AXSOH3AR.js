@@ -1,1 +1,0 @@
-import{a as e}from"./chunk-NNH2MXZ3.js";import{da as i,ia as r,rd as n}from"./chunk-33URO3RH.js";var a=class t{constructor(o){this.http=o}getPlans(){return this.http.get(`${e.apiUrl}/plans`)}static \u0275fac=function(s){return new(s||t)(r(n))};static \u0275prov=i({token:t,factory:t.\u0275fac,providedIn:"root"})};export{a};
